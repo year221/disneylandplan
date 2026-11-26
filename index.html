@@ -74,6 +74,15 @@
   .legend{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .fld{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px;min-width:0}
   details.panel summary{font-weight:600;cursor:pointer}
+  .src{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .src.live{background:#1f8a4c;color:#fff}
+  .src.est{background:transparent;border:1.5px dashed var(--mute);color:var(--mute)}
+  .src.you{background:transparent;border:1.5px solid var(--mute);color:var(--ink)}
+  .src.shut{background:var(--no);color:#fff}
+  .livebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+  .livebar .st2{font-size:13px;color:var(--mute);flex:1;min-width:180px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#1f8a4c;margin-right:5px}
+  .dot.off{background:var(--mute)}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -138,6 +147,14 @@
         <button class="btn" id="csAdd" type="button">Add to plan</button>
       </div>
     </details>
+    <div class="livebar" id="livebar">
+      <span class="src live">LIVE</span>
+      <span class="src est">ESTIMATE</span>
+      <button class="btn" id="refresh" type="button">↻ Refresh waits</button>
+      <label class="h"><input id="useLive" type="checkbox" checked> Use live waits</label>
+      <label class="h"><input id="autoRef" type="checkbox" checked> Auto-refresh every 5 min</label>
+      <span class="st2" id="liveMsg" role="status">Live waits not loaded yet.</span>
+    </div>
     <div class="legend" aria-label="Color key">
       <span class="kt" style="--kc:var(--k-ride)">Ride</span>
       <span class="kt" style="--kc:var(--k-walk)">Walk-through</span>
@@ -348,9 +365,11 @@ function card(i){
   ].join('');
   d.innerHTML = '<div class="banner" style="background:linear-gradient(135deg,'+col+','+col+'bb)">'+icon(type)+'</div>'+
     '<div class="body"><h2 class="name"></h2><div class="land"></div><div class="tags">'+tags+'</div><p class="note"></p>'+
+    '<div class="wchip sub" style="margin:4px 0"></div>'+
     '<div class="stars" role="group"></div>'+
     '<p class="note vnote" hidden></p>'+
     '<div class="acts"><button class="btn add" type="button"></button><a class="btn yt" target="_blank" rel="noopener"></a></div></div>';
+  d.dataset.i = i; d.querySelector('.wchip').innerHTML = waitChip(i);
   d.querySelector('.name').textContent = name;
   d.querySelector('.land').textContent = land;
   d.querySelector('.note').textContent = note;
@@ -432,7 +451,96 @@ function pos(i){
   const k = same.indexOf(i);
   return {x: L.x + ((k%3)-1)*20, y: L.y + (((Math.floor(k/3))%4)-1.5)*16};
 }
-const waitOf = i => (state.waits[RIDES[i][0]] ?? RIDES[i][8]);
+// ---------- waits: your edit > live > estimate ----------
+// ESTIMATE = the typical wait written into this page (a rough guess, not a forecast for your date).
+// LIVE = the posted wait fetched from the web, newer than 30 minutes.
+const LIVE_MAX_AGE = 30*60*1000;
+const norm = n => String(n||'').toLowerCase().replace(/[\u2122\u00ae]/g,'').replace(/&/g,' and ').replace(/\bholiday\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+state.live = {};            // normalized name -> {wait, open, at}
+state.liveOn = true; state.liveAt = null; state.liveErr = '';
+function liveFor(i){
+  if(!state.liveOn) return null;
+  const L = state.live[norm(RIDES[i][0])] || state.live[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===RIDES[i][0])||'')];
+  if(!L || !(Date.now() - L.at <= LIVE_MAX_AGE)) return null;
+  return L;
+}
+function waitInfo(i){
+  const r = RIDES[i];
+  if(i >= BASE) return {v:0, src:'none'};
+  if(state.waits[r[0]] !== undefined) return {v:state.waits[r[0]], src:'you'};
+  const L = liveFor(i);
+  if(L && L.open === false) return {v:r[8], src:'shut'};
+  if(L && L.wait != null) return {v:L.wait, src:'live', at:L.at};
+  return {v:r[8], src:'est'};
+}
+const waitOf = i => waitInfo(i).v;
+const SRC_LABEL = {live:'LIVE', est:'ESTIMATE', you:'YOUR EDIT', shut:'CLOSED NOW'};
+const ageText = at => { const m=Math.round((Date.now()-at)/60000); return m<1?'just now':m+' min ago'; };
+function srcBadge(inf){
+  if(inf.src==='none') return '';
+  const t = SRC_LABEL[inf.src] + (inf.src==='live' ? ', ' + ageText(inf.at) : '');
+  return '<span class="src '+(inf.src==='shut'?'shut':inf.src)+'" title="'+(inf.src==='est'?'Typical wait written into this page, not a prediction for your date':inf.src==='shut'?'Reported closed right now. Showing the estimate.':inf.src==='live'?'Posted wait, updated '+ageText(inf.at):'You typed this wait')+'">'+t+'</span>';
+}
+
+function ingestQT(j){
+  const out = {}; const all = [];
+  (j.lands||[]).forEach(l => (l.rides||[]).forEach(r => all.push(r))); (j.rides||[]).forEach(r => all.push(r));
+  all.forEach(r => { if(/single rider/i.test(r.name)) return; out[norm(r.name)] = {wait: r.wait_time, open: r.is_open!==false, at: Date.parse(r.last_updated) || Date.now()}; });
+  return out;
+}
+function ingestTW(j){
+  const out = {};
+  (j.liveData||[]).forEach(e => { if(e.entityType!=='ATTRACTION' && e.entityType!=='SHOW') return;
+    const w = e.queue && e.queue.STANDBY ? e.queue.STANDBY.waitTime : null;
+    const open = e.status ? e.status==='OPERATING' : true;
+    out[norm(e.name)] = {wait: w, open, at: Date.parse(e.lastUpdated) || Date.now()}; });
+  return out;
+}
+const SOURCES = [
+  {name:'Queue-Times', url:'https://queue-times.com/parks/16/queue_times.json', f:ingestQT},
+  {name:'ThemeParks.wiki', url:'https://api.themeparks.wiki/v1/entity/7340550b-c14d-4def-80bb-acdb51d49a66/live', f:ingestTW}
+];
+let liveBusy = false;
+async function fetchLive(){
+  if(liveBusy) return; liveBusy = true;
+  $('refresh').disabled = true; $('liveMsg').textContent = 'Loading live waits…';
+  let got = null, used = '';
+  for(const src of SOURCES){
+    try{
+      const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 10000);
+      const res = await fetch(src.url, {signal: ctl.signal, cache:'no-store'}); clearTimeout(to);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const m = src.f(await res.json());
+      if(Object.keys(m).length){ got = m; used = src.name; break; }
+    }catch(e){}
+  }
+  if(got){ state.live = got; state.liveAt = Date.now(); state.liveSrc = used; state.liveErr = ''; }
+  else state.liveErr = 'Could not load live waits (offline or blocked). Showing estimates.';
+  liveBusy = false; $('refresh').disabled = false;
+  renderLiveMsg(); refreshWaitViews();
+}
+function liveCount(){ let n=0; RIDES.slice(0,BASE).forEach((r,i)=>{ if(liveFor(i)) n++; }); return n; }
+function renderLiveMsg(){
+  const el = $('liveMsg');
+  if(!state.liveOn){ el.innerHTML = '<span class="dot off"></span>Live waits are off. Showing estimates and your edits.'; return; }
+  if(state.liveAt){
+    const parks = '' ;
+    el.innerHTML = '<span class="dot"></span>Live from ' + state.liveSrc + ', fetched ' + new Date(state.liveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + '. ' + liveCount() + ' of ' + BASE + ' listings have a fresh live wait; the rest show ESTIMATE.' + (state.liveErr ? ' Last refresh failed.' : '');
+  } else el.textContent = state.liveErr || 'Live waits not loaded yet.';
+}
+function refreshWaitViews(){ renderPlan(); document.querySelectorAll('.card').forEach(c => { const i = +c.dataset.i; const b = c.querySelector('.wchip'); if(b) b.innerHTML = waitChip(i); }); }
+function waitChip(i){
+  if(i >= BASE || kindOf(RIDES[i])==='walk' && !RIDES[i][8]) return '';
+  const inf = waitInfo(i);
+  const txt = inf.src==='shut' ? 'Closed now' : inf.v + ' min';
+  return '<span class="wlabel">Wait ' + txt + '</span> ' + srcBadge(inf);
+}
+$('refresh').onclick = fetchLive;
+$('useLive').onchange = () => { state.liveOn = $('useLive').checked; renderLiveMsg(); refreshWaitViews(); if(state.liveOn && !state.liveAt) fetchLive(); };
+let refTimer = null;
+function setAuto(){ clearInterval(refTimer); refTimer = null; if($('autoRef').checked) refTimer = setInterval(() => { if(!document.hidden && state.liveOn) fetchLive(); }, 5*60*1000); }
+$('autoRef').onchange = setAuto;
+document.addEventListener('visibilitychange', () => { if(!document.hidden && state.liveOn && (!state.liveAt || Date.now()-state.liveAt > 5*60*1000)) fetchLive(); });
 function fmt(m){ m=Math.round(m); let h=Math.floor(m/60)%24, mm=m%60; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+String(mm).padStart(2,'0')+' '+ap; }
 function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
 const walkMin = (a,b) => Math.max(1, Math.round(dist(a,b)/22));
@@ -510,7 +618,9 @@ function renderTimeline(){
         const li = adj.querySelector('.len'); li.value = r[9];
         li.addEventListener('change', () => { const v=parseInt(li.value,10); r[9] = isNaN(v)?30:Math.max(1,Math.min(240,v)); save(); renderPlan(); });
       } else {
-        adj.innerHTML = 'Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min';
+        const inf = waitInfo(it.i);
+        adj.innerHTML = 'Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min ' + srcBadge(inf) + (inf.src==='you' ? ' <button type="button" class="btn rs" style="padding:2px 8px;font-size:12px">Use live/estimate</button>' : '');
+        const rsb = adj.querySelector('.rs'); if(rsb) rsb.onclick = () => { delete state.waits[r[0]]; save(); renderPlan(); };
         const wi = adj.querySelector('.wait'); wi.value = it.wait;
         wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
       }
@@ -521,6 +631,10 @@ function renderTimeline(){
     }
     box.appendChild(row);
   });
+  const kinds = {live:0, est:0, you:0, shut:0}; state.sel.forEach(i => { const k = waitInfo(i).src; if(k in kinds) kinds[k]++; });
+  const wn = document.createElement('div'); wn.className='sub'; wn.id='waitNote'; wn.style.paddingTop='8px';
+  wn.textContent = 'Waits in this plan: ' + kinds.live + ' live, ' + kinds.est + ' estimate' + (kinds.you ? ', ' + kinds.you + ' edited by you' : '') + (kinds.shut ? ', ' + kinds.shut + ' closed now (using estimate)' : '') + '. Live waits are for right now, so they only mean something on the day you visit.';
+  box.appendChild(wn);
   const fin = document.createElement('div'); fin.className='sub'; fin.style.paddingTop='10px';
   fin.textContent = 'Finished around ' + fmt(end) + ' (about ' + (Math.round((end - startMin())/6)/10) + ' hours).';
   box.appendChild(fin);
@@ -623,6 +737,7 @@ function applyHash(){
 window.addEventListener('hashchange', applyHash);
 
 restore();
+setAuto(); fetchLive();
 updateTab(); applyFilters();
 applyHash();
 </script>

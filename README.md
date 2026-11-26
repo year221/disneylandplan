@@ -32,3 +32,10 @@ Plan codes (`DL1.` and `DL2.`) and links (`#plan=...`) made by earlier versions 
 - ⚡ marks attractions on Disneyland Park's Lightning Lane Multi Pass list (13 attractions). Rise of the Resistance is marked "Single Pass only". The list was taken from Disneyland's Lightning Lane page on Nov 26, 2026. It changes, so confirm in the Disneyland app. To update it, edit the `LANE` table in `index.html`.
 - "Multi Pass" filter on the Rides tab shows only eligible attractions.
 - "Add a food, rest or custom stop" on the plan tab adds your own stops. They are saved in your plan code and link as an optional field, so older codes and links still load.
+
+## Live waits vs estimates
+
+- Every wait is labeled. **LIVE** is a posted wait fetched from the web in the last 30 minutes. **ESTIMATE** is the typical wait written into this page. It is a rough guess, not historical data and not a forecast for your date. **YOUR EDIT** is a number you typed, and it wins over the other two. **CLOSED NOW** means the source reports the ride closed, so the estimate is used.
+- Sources, tried in order: Queue-Times, then ThemeParks.wiki. Both are unofficial, so values can differ from the Disneyland app.
+- "↻ Refresh waits" fetches again. "Auto-refresh every 5 min" refreshes while the tab is open, and the page also refreshes when you return to the tab. "Use live waits" turns the feature off.
+- Live waits are for right now, so they only help on the day you visit. They are not saved in plan codes or links. Only waits you typed are saved.

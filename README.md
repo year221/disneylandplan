@@ -50,3 +50,11 @@ Plan codes (`DL1.` and `DL2.`) and links (`#plan=...`) made by earlier versions 
 ## Durations
 
 Each stop shows an approximate ride or show length (⏱) on the plan and on the ride cards. The plan also breaks each stop into walk, wait or hold, and length, and totals them at the bottom. Lengths are rough figures written into this page, not official numbers.
+
+## Typical waits by hour
+
+- The plan uses the **typical wait for the hour you would arrive**, so waits change when you reorder stops or move the start time. They are labeled **TYPICAL AT 2P** and so on.
+- Source: average wait by hour of day from the ride statistics pages at [Queue-Times.com](https://queue-times.com/) (2025 for most rides; all years for Tiana's Bayou Adventure, Runaway Railway and Haunted Mansion). It covers 29 rides, hours 8 AM to 11 PM. Rides without data keep the ESTIMATE. It is a past average, not a forecast for your date, and holidays like Thanksgiving week run busier.
+- Order of trust for each stop: YOUR EDIT, then LIVE (only if the stop is within an hour of the current park time), then TYPICAL, then ESTIMATE.
+- Auto-order puts the ride with the highest typical peak first.
+- Attribution: the page shows "Powered by Queue-Times.com" with a link, as their API page asks. Their terms do not address republishing statistics, so ask them before sharing this widely. To update the numbers, edit the `HIST` table in `index.html`.

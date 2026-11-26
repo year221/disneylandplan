@@ -60,6 +60,9 @@
   .num.lunch{background:var(--mute)}
   .when{font-weight:700}
   .sub{font-size:13px;color:var(--mute)}
+  .jump{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:13px}
+  .jump input{width:56px;padding:3px 6px;font-size:13px}
+  .jump button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:13px}
   .mv{display:flex;flex-direction:column;gap:4px}
   .mv button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:13px}
   .wait{width:56px;padding:3px 6px;font-size:13px}
@@ -681,7 +684,8 @@ function renderTimeline(){
       if(lane==='multi') multi++; if(lane==='single') single++;
       row.style.setProperty('--kc','var(--k-'+kind+')');
       row.innerHTML = '<div class="num"></div><div><div class="when"></div><div class="nm" style="font-weight:600"></div><div class="badges"></div><div class="st"></div><div class="sub"></div>'+
-        '<div class="sub adj" style="margin-top:6px"></div></div>'+
+        '<div class="sub adj" style="margin-top:6px"></div>'+
+        '<div class="jump">Move to # <input class="to" type="number" min="1" inputmode="numeric" aria-label="New position"> <button type="button" class="go">Move</button> <button type="button" class="top">⤒ Front</button> <button type="button" class="end">⤓ End</button></div></div>'+
         '<div class="mv"><button type="button" class="up" aria-label="Move up">▲</button><button type="button" class="dn" aria-label="Move down">▼</button><button type="button" class="rm" aria-label="Remove">✕</button></div>';
       row.querySelector('.num').textContent = n;
       row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
@@ -718,6 +722,13 @@ function renderTimeline(){
       const k = state.sel.indexOf(it.i);
       row.querySelector('.up').onclick = () => { if(k>0){ [state.sel[k-1],state.sel[k]]=[state.sel[k],state.sel[k-1]]; save(); renderPlan(); } };
       row.querySelector('.dn').onclick = () => { if(k<state.sel.length-1){ [state.sel[k+1],state.sel[k]]=[state.sel[k],state.sel[k+1]]; save(); renderPlan(); } };
+      const moveTo = pos1 => { const to = Math.max(0, Math.min(state.sel.length-1, pos1)); if(to === k) return; const [x] = state.sel.splice(k,1); state.sel.splice(to,0,x); save(); renderPlan(); };
+      const toIn = row.querySelector('.to'); toIn.max = state.sel.length; toIn.placeholder = String(k+1);
+      const goNow = () => { const v = parseInt(toIn.value,10); if(!isNaN(v)) moveTo(v-1); };
+      row.querySelector('.go').onclick = goNow;
+      toIn.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); goNow(); } });
+      row.querySelector('.top').onclick = () => moveTo(0);
+      row.querySelector('.end').onclick = () => moveTo(state.sel.length-1);
       row.querySelector('.rm').onclick = () => { state.sel.splice(k,1); updateTab(); save(); renderPlan(); };
     }
     box.appendChild(row);

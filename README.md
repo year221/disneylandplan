@@ -58,3 +58,7 @@ Each stop shows an approximate ride or show length (⏱) on the plan and on the 
 - Order of trust for each stop: YOUR EDIT, then LIVE (only if the stop is within an hour of the current park time), then TYPICAL, then ESTIMATE.
 - Auto-order puts the ride with the highest typical peak first.
 - Attribution: the page shows "Powered by Queue-Times.com" with a link, as their API page asks. Their terms do not address republishing statistics, so ask them before sharing this widely. To update the numbers, edit the `HIST` table in `index.html`.
+
+## Moving stops quickly
+
+Each stop in the plan has "Move to #" (type a position and press Move or Enter), plus ⤒ Front and ⤓ End buttons. The ▲ ▼ buttons still move one step. Positions count stops only, not the lunch row.

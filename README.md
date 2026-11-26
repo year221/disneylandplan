@@ -39,3 +39,10 @@ Plan codes (`DL1.` and `DL2.`) and links (`#plan=...`) made by earlier versions 
 - Sources, tried in order: Queue-Times, then ThemeParks.wiki. Both are unofficial, so values can differ from the Disneyland app.
 - "↻ Refresh waits" fetches again. "Auto-refresh every 5 min" refreshes while the tab is open, and the page also refreshes when you return to the tab. "Use live waits" turns the feature off.
 - Live waits are for right now, so they only help on the day you visit. They are not saved in plan codes or links. Only waits you typed are saved.
+
+## Show times
+
+- Show times come from the ThemeParks.wiki live feed and cover today only (park time, Pacific). They are labeled **TODAY'S SCHEDULE**. Shows with no times posted say so.
+- Show cards list today's showings. In the plan, a show stop has a showtime menu. "Next showing" picks the first showing at least 10 minutes after you would arrive, and the timeline holds until the show starts. If the showing you picked starts before you would arrive, the stop says so.
+- "Add a show, parade or music set from today's schedule" adds entertainment that is not already in the list, such as fireworks or parades. The land on the map is a guess for these.
+- A chosen showtime is saved in your plan code and link as an optional field, so older codes still load. A code only keeps the clock time, so on another day check that the show runs then.

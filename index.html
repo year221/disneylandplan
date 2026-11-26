@@ -155,6 +155,14 @@
       <label class="h"><input id="autoRef" type="checkbox" checked> Auto-refresh every 5 min</label>
       <span class="st2" id="liveMsg" role="status">Live waits not loaded yet.</span>
     </div>
+    <details class="panel" id="addSched">
+      <summary>Add a show, parade or music set from today's schedule</summary>
+      <div class="row" style="margin-top:10px">
+        <select id="schSel" class="fld" style="flex:1"></select>
+        <button class="btn" id="schAdd" type="button">Add to plan</button>
+      </div>
+      <p class="sub" id="schNote" style="margin:6px 0 0"></p>
+    </details>
     <div class="legend" aria-label="Color key">
       <span class="kt" style="--kc:var(--k-ride)">Ride</span>
       <span class="kt" style="--kc:var(--k-walk)">Walk-through</span>
@@ -278,7 +286,7 @@ const ICONS = {
 function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
 
 const $ = id => document.getElementById(id);
-const state = {pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
+const state = {pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}, showPick:{}};
 const BATCH = 6;
 const BASE = RIDES.length;   // built-in listings; custom stops are added after these
 const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
@@ -287,13 +295,13 @@ Object.keys(ALIASES).forEach(k => idxByName[k] = idxByName[ALIASES[k]]);
 // custom stops (food, rest, other) live after the built-in listings and are saved with the plan
 function ensureCustom(name, kind, land, mins){
   name = String(name||'').trim().slice(0,60); if(!name) return undefined;
-  kind = kind === 'rest' ? 'rest' : 'food';
+  kind = ['rest','show'].includes(kind) ? kind : 'food';
   mins = Math.max(1, Math.min(240, parseInt(mins,10) || 30));
   if(!(land in LANDS)) land = 'Main Street, U.S.A.';
   if(idxByName[name] !== undefined && idxByName[name] < BASE) name += ' (my stop)';
   let i = idxByName[name];
   if(i !== undefined){ RIDES[i][1]=land; RIDES[i][9]=mins; RIDES[i][12]=kind; return i; }
-  RIDES.push([name, land, 'All ages', 0, false, true, kind==='food' ? 'Your food stop.' : 'Your stop.', 'play', 0, mins, '', '', kind]);
+  RIDES.push([name, land, 'All ages', 0, false, true, kind==='food' ? 'Your food stop.' : kind==='show' ? 'Show, parade or music from today\'s schedule.' : 'Your stop.', 'play', 0, mins, '', '', kind]);
   i = RIDES.length-1; idxByName[name] = i; return i;
 }
 const customDefs = () => state.sel.filter(i=>i>=BASE).map(i=>[RIDES[i][0], kindOf(RIDES[i]), RIDES[i][1], RIDES[i][9]]);
@@ -302,13 +310,13 @@ const scoreOf = i => state.scores[RIDES[i][0]] || 0;
 const LABELS = ['Not rated','Skip','Maybe','Good','Really want','Must do'];
 const starsText = n => n ? '★'.repeat(n) + '☆'.repeat(5-n) : '';
 
-function save(){ try{ localStorage.setItem('dl-plan2', JSON.stringify({c:customDefs(), sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
+function save(){ try{ localStorage.setItem('dl-plan2', JSON.stringify({c:customDefs(), sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, h:state.showPick, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
 function restore(){ try{
   let raw = localStorage.getItem('dl-plan2') || localStorage.getItem('dl-plan');
   const d = JSON.parse(raw||'null'); if(!d) return;
   (d.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
   state.sel=(d.sel||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
-  state.waits=d.waits||{}; state.scores=d.scores||{};
+  state.waits=d.waits||{}; state.scores=d.scores||{}; state.showPick=d.h||{};
   if(d.start) $('start').value=d.start; if(typeof d.lunch==='boolean') $('lunch').checked=d.lunch; }catch(e){} }
 
 function applyFilters(){
@@ -457,7 +465,7 @@ function pos(i){
 const LIVE_MAX_AGE = 30*60*1000;
 const norm = n => String(n||'').toLowerCase().replace(/[\u2122\u00ae]/g,'').replace(/&/g,' and ').replace(/\bholiday\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 state.live = {};            // normalized name -> {wait, open, at}
-state.liveOn = true; state.liveAt = null; state.liveErr = '';
+state.liveOn = true; state.liveAt = null; state.liveErr = ''; state.sched = {}; state.schedAt = null; state.schedErr = '';
 function liveFor(i){
   if(!state.liveOn) return null;
   const L = state.live[norm(RIDES[i][0])] || state.live[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===RIDES[i][0])||'')];
@@ -482,18 +490,45 @@ function srcBadge(inf){
   return '<span class="src '+(inf.src==='shut'?'shut':inf.src)+'" title="'+(inf.src==='est'?'Typical wait written into this page, not a prediction for your date':inf.src==='shut'?'Reported closed right now. Showing the estimate.':inf.src==='live'?'Posted wait, updated '+ageText(inf.at):'You typed this wait')+'">'+t+'</span>';
 }
 
+function schedFor(i){
+  const r = RIDES[i];
+  return state.sched[norm(r[0])] || state.sched[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===r[0])||'')] || null;
+}
+const showTimes = i => { const S = schedFor(i); return kindOf(RIDES[i])==='show' && S && S.times.length ? S.times : null; };
+const short = m => fmt(m).replace(':00 ',' ').replace(' AM','a').replace(' PM','p');
+function pickTime(i, arrive){
+  // returns {start, late, auto} using your pick, else the next showing at least 10 min after you arrive
+  const T = showTimes(i); if(!T) return null;
+  const pk = state.showPick[RIDES[i][0]];
+  if(pk){ const m = hm('T'+pk); if(m && T.some(x=>x.hhmm===pk)) return {start:m.min, late:m.min < arrive, auto:false}; }
+  const nx = T.find(x => x.min >= arrive + 10);
+  return nx ? {start:nx.min, late:false, auto:true} : {start:null, late:false, auto:true, none:true};
+}
+const SCHED_BADGE = '<span class="src live" title="Posted performance times for today, from the ThemeParks.wiki feed">TODAY\'S SCHEDULE</span>';
+
 function ingestQT(j){
   const out = {}; const all = [];
   (j.lands||[]).forEach(l => (l.rides||[]).forEach(r => all.push(r))); (j.rides||[]).forEach(r => all.push(r));
   all.forEach(r => { if(/single rider/i.test(r.name)) return; out[norm(r.name)] = {wait: r.wait_time, open: r.is_open!==false, at: Date.parse(r.last_updated) || Date.now()}; });
   return out;
 }
+// Park-local date (Pacific). Showtimes in the feed carry a Pacific offset, so the HH:MM in the text is already park time.
+const parkToday = () => new Intl.DateTimeFormat('en-CA', {timeZone:'America/Los_Angeles'}).format(new Date());
+const hm = t => { const m = /T(\d\d):(\d\d)/.exec(t||''); return m ? {hhmm:m[1]+':'+m[2], min:(+m[1])*60+(+m[2])} : null; };
 function ingestTW(j){
-  const out = {};
+  const out = {}, today = parkToday();
   (j.liveData||[]).forEach(e => { if(e.entityType!=='ATTRACTION' && e.entityType!=='SHOW') return;
     const w = e.queue && e.queue.STANDBY ? e.queue.STANDBY.waitTime : null;
     const open = e.status ? e.status==='OPERATING' : true;
-    out[norm(e.name)] = {wait: w, open, at: Date.parse(e.lastUpdated) || Date.now()}; });
+    const times = [], wins = [];
+    (e.showtimes||[]).forEach(st => {
+      if(!st.startTime || st.startTime.slice(0,10) !== today) return;
+      const a = hm(st.startTime), b = hm(st.endTime);
+      if(!a) return;
+      if(st.type === 'Operating') wins.push({a, b}); else times.push(a);
+    });
+    times.sort((x,y)=>x.min-y.min);
+    out[norm(e.name)] = {name:e.name, wait: w, open, at: Date.parse(e.lastUpdated) || Date.now(), times, wins}; });
   return out;
 }
 const SOURCES = [
@@ -501,35 +536,49 @@ const SOURCES = [
   {name:'ThemeParks.wiki', url:'https://api.themeparks.wiki/v1/entity/7340550b-c14d-4def-80bb-acdb51d49a66/live', f:ingestTW}
 ];
 let liveBusy = false;
+async function getSrc(src){
+  try{
+    const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 10000);
+    const res = await fetch(src.url, {signal: ctl.signal, cache:'no-store'}); clearTimeout(to);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const m = src.f(await res.json());
+    return Object.keys(m).length ? m : null;
+  }catch(e){ return null; }
+}
 async function fetchLive(){
   if(liveBusy) return; liveBusy = true;
-  $('refresh').disabled = true; $('liveMsg').textContent = 'Loading live waits…';
-  let got = null, used = '';
-  for(const src of SOURCES){
-    try{
-      const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 10000);
-      const res = await fetch(src.url, {signal: ctl.signal, cache:'no-store'}); clearTimeout(to);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const m = src.f(await res.json());
-      if(Object.keys(m).length){ got = m; used = src.name; break; }
-    }catch(e){}
-  }
-  if(got){ state.live = got; state.liveAt = Date.now(); state.liveSrc = used; state.liveErr = ''; }
+  $('refresh').disabled = true; $('liveMsg').textContent = 'Loading live waits and show times…';
+  const [qt, tw] = await Promise.all(SOURCES.map(getSrc));
+  const waits = qt || tw;
+  if(waits){ state.live = waits; state.liveAt = Date.now(); state.liveSrc = qt ? SOURCES[0].name : SOURCES[1].name; state.liveErr = ''; }
   else state.liveErr = 'Could not load live waits (offline or blocked). Showing estimates.';
+  if(tw){ state.sched = tw; state.schedAt = Date.now(); state.schedErr = ''; }
+  else state.schedErr = 'Could not load show times. Check the Disneyland app.';
   liveBusy = false; $('refresh').disabled = false;
-  renderLiveMsg(); refreshWaitViews();
+  renderLiveMsg(); refreshWaitViews(); fillShowSelect();
 }
 function liveCount(){ let n=0; RIDES.slice(0,BASE).forEach((r,i)=>{ if(liveFor(i)) n++; }); return n; }
+function schedMsg(){
+  if(state.schedErr && !state.schedAt) return ' ' + state.schedErr;
+  if(!state.schedAt) return '';
+  const n = Object.values(state.sched).filter(x=>x.times.length).length;
+  return ' Show times for ' + parkToday() + ': ' + n + ' entertainment listings have showings' + (state.schedErr ? ' (last refresh failed).' : '.');
+}
 function renderLiveMsg(){
   const el = $('liveMsg');
-  if(!state.liveOn){ el.innerHTML = '<span class="dot off"></span>Live waits are off. Showing estimates and your edits.'; return; }
+  if(!state.liveOn){ el.innerHTML = '<span class="dot off"></span>Live waits are off. Showing estimates and your edits.' + schedMsg(); return; }
   if(state.liveAt){
     const parks = '' ;
-    el.innerHTML = '<span class="dot"></span>Live from ' + state.liveSrc + ', fetched ' + new Date(state.liveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + '. ' + liveCount() + ' of ' + BASE + ' listings have a fresh live wait; the rest show ESTIMATE.' + (state.liveErr ? ' Last refresh failed.' : '');
-  } else el.textContent = state.liveErr || 'Live waits not loaded yet.';
+    el.innerHTML = '<span class="dot"></span>Live from ' + state.liveSrc + ', fetched ' + new Date(state.liveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + '. ' + liveCount() + ' of ' + BASE + ' listings have a fresh live wait; the rest show ESTIMATE.' + (state.liveErr ? ' Last refresh failed.' : '') + schedMsg();
+  } else el.textContent = (state.liveErr || 'Live waits not loaded yet.') + schedMsg();
 }
 function refreshWaitViews(){ renderPlan(); document.querySelectorAll('.card').forEach(c => { const i = +c.dataset.i; const b = c.querySelector('.wchip'); if(b) b.innerHTML = waitChip(i); }); }
 function waitChip(i){
+  const T = showTimes(i);
+  if(T) return '<span class="wlabel">Today: ' + T.map(x=>short(x.min)).join(', ') + '</span> ' + SCHED_BADGE;
+  const S = schedFor(i);
+  if(S && kindOf(RIDES[i])==='meet' && S.wins.length) return '<span class="wlabel">Hours today: ' + short(S.wins[0].a.min) + ' to ' + short(S.wins[0].b.min) + (S.open ? '' : ' (closed now)') + '</span> ' + SCHED_BADGE;
+  if(kindOf(RIDES[i])==='show' && state.schedAt) return '<span class="wlabel">No showtimes posted today</span> <span class="src est">NOT POSTED</span>';
   if(i >= BASE || kindOf(RIDES[i])==='walk' && !RIDES[i][8]) return '';
   const inf = waitInfo(i);
   const txt = inf.src==='shut' ? 'Closed now' : inf.v + ' min';
@@ -576,8 +625,10 @@ function buildTimeline(){
   const items = [];
   state.sel.forEach(i => {
     if(!lunchDone && t >= 11*60+30){ items.push({lunch:true, at:t}); t += 45; lunchDone = true; }
-    const p = pos(i), w = walkMin(here,p), arrive = t + w, wait = waitOf(i), dur = RIDES[i][9];
-    items.push({i, walk:w, arrive, wait, dur, off: arrive+wait+dur});
+    const p = pos(i), w = walkMin(here,p), arrive = t + w, dur = RIDES[i][9];
+    const sh = pickTime(i, arrive);
+    const wait = sh ? (sh.start != null && !sh.late ? sh.start - arrive : 0) : waitOf(i);
+    items.push({i, walk:w, arrive, wait, dur, show:sh, off: arrive+wait+dur});
     t = arrive + wait + dur; here = p;
   });
   return {items, end:t};
@@ -611,9 +662,22 @@ function renderTimeline(){
       row.querySelector('.badges').innerHTML = '<span class="kt">' + KIND_LABEL[kind] + '</span>' +
         (lane==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (lane==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''));
       row.querySelector('.st').textContent = starsText(scoreOf(it.i));
-      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + (kind==='show'||kind==='meet' ? ' · check the app for show times' : '');
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + ((kind==='show'&&!it.show)||kind==='meet' ? ' · check the app for show times' : '');
       const adj = row.querySelector('.adj');
-      if(custom){
+      if(it.show){
+        const T = showTimes(it.i);
+        adj.innerHTML = 'Showtime <select class="fld sh"></select> ' + SCHED_BADGE + '<div class="shn" style="margin-top:4px"></div>';
+        const sel = adj.querySelector('.sh');
+        const o0 = document.createElement('option'); o0.value=''; o0.textContent = 'Next showing' + (it.show.auto && it.show.start!=null ? ' (' + fmt(it.show.start) + ')' : ''); sel.appendChild(o0);
+        T.forEach(x => { const o=document.createElement('option'); o.value=x.hhmm; o.textContent=fmt(x.min); sel.appendChild(o); });
+        sel.value = state.showPick[r[0]] || '';
+        sel.addEventListener('change', () => { if(sel.value) state.showPick[r[0]] = sel.value; else delete state.showPick[r[0]]; save(); renderPlan(); });
+        const shn = adj.querySelector('.shn');
+        shn.textContent = it.show.none ? 'No more showings after you arrive today. Remove this stop or pick another day.'
+          : it.show.late ? 'You would arrive after the ' + fmt(it.show.start) + ' showing starts. Pick a later one.'
+          : 'Show starts ' + fmt(it.show.start) + '. Holding ' + it.wait + ' min after you arrive; seats fill early, so arrive 15 min before.';
+        const lw = adj; if(custom){ const li = document.createElement('div'); li.style.marginTop='4px'; li.innerHTML = 'Length <input class="len" type="number" min="1" max="240" inputmode="numeric"> min'; adj.appendChild(li); const ii = li.querySelector('.len'); ii.value = r[9]; ii.addEventListener('change', () => { const v=parseInt(ii.value,10); r[9] = isNaN(v)?20:Math.max(1,Math.min(240,v)); save(); renderPlan(); }); }
+      } else if(custom){
         adj.innerHTML = 'Length <input class="len" type="number" min="1" max="240" inputmode="numeric"> min';
         const li = adj.querySelector('.len'); li.value = r[9];
         li.addEventListener('change', () => { const v=parseInt(li.value,10); r[9] = isNaN(v)?30:Math.max(1,Math.min(240,v)); save(); renderPlan(); });
@@ -631,7 +695,7 @@ function renderTimeline(){
     }
     box.appendChild(row);
   });
-  const kinds = {live:0, est:0, you:0, shut:0}; state.sel.forEach(i => { const k = waitInfo(i).src; if(k in kinds) kinds[k]++; });
+  const kinds = {live:0, est:0, you:0, shut:0}; state.sel.forEach(i => { if(showTimes(i)) return; const k = waitInfo(i).src; if(k in kinds) kinds[k]++; });
   const wn = document.createElement('div'); wn.className='sub'; wn.id='waitNote'; wn.style.paddingTop='8px';
   wn.textContent = 'Waits in this plan: ' + kinds.live + ' live, ' + kinds.est + ' estimate' + (kinds.you ? ', ' + kinds.you + ' edited by you' : '') + (kinds.shut ? ', ' + kinds.shut + ' closed now (using estimate)' : '') + '. Live waits are for right now, so they only mean something on the day you visit.';
   box.appendChild(wn);
@@ -679,7 +743,7 @@ function renderMap(){
 
 // ---------- save / load by code (works across devices) ----------
 function makeCode(){
-  const o = {c:customDefs(), s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
+  const o = {c:customDefs(), h:state.showPick, s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
   return 'DL2.' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function loadCode(code){
@@ -689,7 +753,7 @@ function loadCode(code){
     const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
     (o.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
     state.sel = (o.s||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
-    state.waits = o.w||{};
+    state.waits = o.w||{}; state.showPick = o.h||{};
     if(o.r) state.scores = o.r;
     if(o.t) $('start').value = o.t;
     $('lunch').checked = o.l !== false;
@@ -713,6 +777,25 @@ $('copyLink').onclick = async () => {
   if(!/^https?:/.test(link)){ $('codeIn').value = makeCode(); $('codeMsg').textContent = 'A full link is not available in this view. Use Copy plan code instead.'; return; }
   try{ await navigator.clipboard.writeText(link); $('codeMsg').textContent = 'Copied a link. Anyone who opens it gets this plan and your star scores.'; }
   catch(e){ $('codeIn').value = link; $('codeIn').select(); $('codeMsg').textContent = 'Copy the link from the box (press and hold, then Copy).'; }
+};
+// shows and parades from the feed that are not already listed
+const LAND_GUESS = [[/fantasmic|frontierland|mark twain/i,'Frontierland'],[/small world|castle|wintertime|pearly band|fantasyland/i,'Fantasyland'],[/galaxy|batuu/i,"Galaxy's Edge"],[/.*/,'Main Street, U.S.A.']];
+function fillShowSelect(){
+  const sel = $('schSel'); if(!sel) return; sel.innerHTML = '';
+  const have = new Set(RIDES.slice(0,BASE).map(r=>norm(r[0])));
+  const list = Object.entries(state.sched).filter(([k,v]) => v.times.length && !have.has(k)).sort((a,b)=>a[1].times[0].min-b[1].times[0].min);
+  list.forEach(([k,v]) => { const o=document.createElement('option'); o.value=v.name; o.textContent = v.name + ' (' + v.times.map(x=>short(x.min)).join(', ') + ')'; sel.appendChild(o); });
+  $('schAdd').disabled = !list.length;
+  $('schNote').textContent = list.length ? 'Times are for ' + parkToday() + ' (park time). Check the Disneyland app, since schedules change.' : (state.schedAt ? 'No other entertainment with showtimes posted for today.' : 'Show times have not loaded yet.');
+}
+$('schAdd').onclick = () => {
+  const nm = $('schSel').value; if(!nm) return;
+  const land = LAND_GUESS.find(x=>x[0].test(nm))[1];
+  const i = ensureCustom(nm, 'show', land, 20);
+  if(i === undefined) return;
+  if(!state.sel.includes(i)) state.sel.push(i);
+  $('codeMsg').textContent = 'Added. Pick a showtime and use ▲ ▼ to place it. The land on the map is a guess.';
+  updateTab(); save(); renderPlan();
 };
 // add a food, rest or custom stop
 Object.keys(LANDS).forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; $('csLand').appendChild(o); });

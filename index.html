@@ -74,6 +74,7 @@
   .legend{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .fld{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px;min-width:0}
   details.panel summary{font-weight:600;cursor:pointer}
+  .dur{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1.5px solid var(--ink);color:var(--ink);white-space:nowrap}
   .src{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
   .src.live{background:#1f8a4c;color:#fff}
   .src.est{background:transparent;border:1.5px dashed var(--mute);color:var(--mute)}
@@ -368,6 +369,7 @@ function card(i){
     px ? '<span class="tag p">★ Pixar</span>' : '',
     '<span class="kt" style="--kc:var(--k-'+kindOf(r)+')">' + KIND_LABEL[kindOf(r)] + '</span>',
     laneOf(r)==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (laneOf(r)==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''),
+    '<span class="tag">⏱ ~' + r[9] + ' min</span>',
     '<span class="tag">' + age + '</span>',
     '<span class="tag ' + (fit ? 'ok' : 'no') + '">' + (h ? h + '" minimum' : 'No height minimum') + (fit ? '' : ' – too short') + '</span>'
   ].join('');
@@ -490,6 +492,8 @@ function srcBadge(inf){
   return '<span class="src '+(inf.src==='shut'?'shut':inf.src)+'" title="'+(inf.src==='est'?'Typical wait written into this page, not a prediction for your date':inf.src==='shut'?'Reported closed right now. Showing the estimate.':inf.src==='live'?'Posted wait, updated '+ageText(inf.at):'You typed this wait')+'">'+t+'</span>';
 }
 
+const DUR_WORD = {ride:'Ride time', show:'Show length', walk:'Visit time', play:'Play time', meet:'Visit time', food:'Eating time', rest:'Break'};
+const durChip = i => '<span class="dur" title="' + DUR_WORD[kindOf(RIDES[i])] + ' (approximate, not including the wait)">⏱ ' + RIDES[i][9] + ' min</span>';
 function schedFor(i){
   const r = RIDES[i];
   return state.sched[norm(r[0])] || state.sched[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===r[0])||'')] || null;
@@ -659,10 +663,10 @@ function renderTimeline(){
       row.querySelector('.num').textContent = n;
       row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
       row.querySelector('.nm').textContent = r[0];
-      row.querySelector('.badges').innerHTML = '<span class="kt">' + KIND_LABEL[kind] + '</span>' +
+      row.querySelector('.badges').innerHTML = '<span class="kt">' + KIND_LABEL[kind] + '</span>' + durChip(it.i) +
         (lane==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (lane==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''));
       row.querySelector('.st').textContent = starsText(scoreOf(it.i));
-      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + ((kind==='show'&&!it.show)||kind==='meet' ? ' · check the app for show times' : '');
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · ' + (it.wait ? (it.show ? 'hold ' : 'wait ') + it.wait + ' min · ' : '') + DUR_WORD[kind].toLowerCase() + ' ~' + it.dur + ' min · done ~' + fmt(it.off) + ((kind==='show'&&!it.show)||kind==='meet' ? ' · check the app for show times' : '');
       const adj = row.querySelector('.adj');
       if(it.show){
         const T = showTimes(it.i);
@@ -700,6 +704,10 @@ function renderTimeline(){
   wn.textContent = 'Waits in this plan: ' + kinds.live + ' live, ' + kinds.est + ' estimate' + (kinds.you ? ', ' + kinds.you + ' edited by you' : '') + (kinds.shut ? ', ' + kinds.shut + ' closed now (using estimate)' : '') + '. Live waits are for right now, so they only mean something on the day you visit.';
   box.appendChild(wn);
   const fin = document.createElement('div'); fin.className='sub'; fin.style.paddingTop='10px';
+  let tw=0, tq=0, td=0; items.forEach(it => { if(it.lunch){ td += 0; return; } tw += it.walk; tq += it.wait; td += it.dur; });
+  const tot = document.createElement('div'); tot.className='sub'; tot.id='durTotal'; tot.style.paddingTop='8px';
+  tot.textContent = 'Time in this plan: about ' + td + ' min on rides, shows and stops, ' + tq + ' min waiting or holding, ' + tw + ' min walking' + ($('lunch').checked ? ', plus 45 min lunch' : '') + '.';
+  box.appendChild(tot);
   fin.textContent = 'Finished around ' + fmt(end) + ' (about ' + (Math.round((end - startMin())/6)/10) + ' hours).';
   box.appendChild(fin);
   if(multi || single){

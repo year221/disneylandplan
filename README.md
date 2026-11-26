@@ -46,3 +46,7 @@ Plan codes (`DL1.` and `DL2.`) and links (`#plan=...`) made by earlier versions 
 - Show cards list today's showings. In the plan, a show stop has a showtime menu. "Next showing" picks the first showing at least 10 minutes after you would arrive, and the timeline holds until the show starts. If the showing you picked starts before you would arrive, the stop says so.
 - "Add a show, parade or music set from today's schedule" adds entertainment that is not already in the list, such as fireworks or parades. The land on the map is a guess for these.
 - A chosen showtime is saved in your plan code and link as an optional field, so older codes still load. A code only keeps the clock time, so on another day check that the show runs then.
+
+## Durations
+
+Each stop shows an approximate ride or show length (⏱) on the plan and on the ride cards. The plan also breaks each stop into walk, wait or hold, and length, and totals them at the bottom. Lengths are rough figures written into this page, not official numbers.

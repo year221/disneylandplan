@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Disneyland Park Planner</title>
 <style>
-  :root{--bg:#f6f4ef;--card:#fff;--ink:#1d2433;--mute:#6a7385;--line:#e4e0d6;--accent:#2f5bd8;--pixar:#e8542f;--ok:#1f8a4c;--no:#b3392e;--map:#eef3ea;--star:#f2a900}
-  @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1e222d;--ink:#eef0f5;--mute:#9aa3b5;--line:#2c3140;--accent:#7fa0ff;--pixar:#ff7a57;--ok:#4cc783;--no:#ff8478;--map:#1a2420;--star:#ffc233}}
+  :root{--bg:#f6f4ef;--card:#fff;--ink:#1d2433;--mute:#6a7385;--line:#e4e0d6;--accent:#2f5bd8;--pixar:#e8542f;--ok:#1f8a4c;--no:#b3392e;--map:#eef3ea;--star:#f2a900;--k-ride:#2f5bd8;--k-walk:#1f8a4c;--k-show:#8a4fd0;--k-play:#d9741a;--k-meet:#d14a8a;--k-food:#b3392e;--k-rest:#5f6878;--kink:#fff;--lane:#f2a900}
+  @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1e222d;--ink:#eef0f5;--mute:#9aa3b5;--line:#2c3140;--accent:#7fa0ff;--pixar:#ff7a57;--ok:#4cc783;--no:#ff8478;--map:#1a2420;--star:#ffc233;--k-ride:#7fa0ff;--k-walk:#4cc783;--k-show:#b98cf0;--k-play:#ffa85c;--k-meet:#ff86bd;--k-food:#ff8478;--k-rest:#9aa3b5;--kink:#14171f;--lane:#ffc233}}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
   header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px 8px}
@@ -65,6 +65,15 @@
   .wait{width:56px;padding:3px 6px;font-size:13px}
   .empty{color:var(--mute);text-align:center;padding:24px 8px}
   .st{color:var(--star)}
+  .stop{border-left:5px solid var(--kc,var(--line));padding-left:10px}
+  .num{background:var(--kc,var(--accent));color:var(--kink)}
+  .kt{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;color:var(--kink);background:var(--kc,var(--mute))}
+  .lane{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--lane);color:#1d2433}
+  .lane.single{background:transparent;border:1.5px solid var(--lane);color:var(--ink)}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .fld{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px;min-width:0}
+  details.panel summary{font-weight:600;cursor:pointer}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -78,6 +87,7 @@
   <div id="rideControls">
     <div class="row">
       <button class="chip px" id="fPixar" aria-pressed="false">★ Pixar</button>
+      <button class="chip" id="fLane" aria-pressed="false">⚡ Multi Pass</button>
       <button class="chip" id="fRides" aria-pressed="false">Rides only</button>
       <button class="chip" id="fTop" aria-pressed="false">Top picks (4+ stars)</button>
       <button class="chip" id="fSort" aria-pressed="false">Best score first</button>
@@ -93,7 +103,7 @@
   <section id="viewRides">
     <div id="list"></div>
     <div id="sentinel">Loading more…</div>
-    <div class="foot">Heights and ride status change. Confirm in the Disneyland app and at the ride entrance. Videos are made by other people and are not affiliated with this page.</div>
+    <div class="foot">Heights and ride status change. Confirm in the Disneyland app and at the ride entrance. Videos are made by other people and are not affiliated with this page. ⚡ marks rides on Disneyland's Lightning Lane Multi Pass list as of Nov 26, 2026. That list changes, so check the app.</div>
   </section>
 
   <section id="viewPlan" hidden>
@@ -115,6 +125,29 @@
       </div>
       <p class="sub" id="codeMsg" style="margin:6px 0 0"></p>
       <p class="sub" style="margin:10px 0 0">Waits are rough guesses for a typical day. Edit the minutes on any stop and the times update. Walk times come from this simplified map, not exact distances.</p>
+    </div>
+    <details class="panel" id="addStop">
+      <summary>Add a food, rest or custom stop</summary>
+      <div class="row" style="margin-top:10px">
+        <select id="csKind" class="fld"><option value="food">Food or snack</option><option value="rest">Rest or other</option></select>
+        <input id="csName" class="fld" type="text" maxlength="60" placeholder="Name, for example Churros" style="flex:1">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <select id="csLand" class="fld"></select>
+        <label class="h">Minutes <input id="csMin" type="number" min="5" max="240" value="30" inputmode="numeric"></label>
+        <button class="btn" id="csAdd" type="button">Add to plan</button>
+      </div>
+    </details>
+    <div class="legend" aria-label="Color key">
+      <span class="kt" style="--kc:var(--k-ride)">Ride</span>
+      <span class="kt" style="--kc:var(--k-walk)">Walk-through</span>
+      <span class="kt" style="--kc:var(--k-show)">Show</span>
+      <span class="kt" style="--kc:var(--k-play)">Play area</span>
+      <span class="kt" style="--kc:var(--k-meet)">Meet &amp; greet</span>
+      <span class="kt" style="--kc:var(--k-food)">Food</span>
+      <span class="kt" style="--kc:var(--k-rest)">Rest / other</span>
+      <span class="lane">⚡ Multi Pass</span>
+      <span class="lane single">⚡ Single Pass only</span>
     </div>
     <div class="mapbox" id="map"></div>
     <div class="panel" id="timeline"></div>
@@ -192,7 +225,11 @@ const RIDES = [
 // old names from earlier versions still load from saved plans and codes
 const ALIASES = {"Gadget's Go Coaster":"Chip 'n' Dale's GADGETcoaster","Chip 'n Dale Treehouse and Acorn Ball Pit":"CenTOONial Park"};
 const kindOf = r => r[12] || 'ride';
-const KIND_LABEL = {ride:'Ride', show:'Show', walk:'Walk-through', play:'Play area', meet:'Meet & greet'};
+const KIND_LABEL = {ride:'Ride', show:'Show', walk:'Walk-through', play:'Play area', meet:'Meet & greet', food:'Food', rest:'Rest / other'};
+// Lightning Lane, from Disneyland's Lightning Lane passes page (checked Nov 26, 2026).
+// "multi" = Multi Pass attraction. "single" = Single Pass only (not on Multi Pass). The list changes, so check the app.
+const LANE = {"Autopia":"multi","Big Thunder Mountain Railroad":"multi","Buzz Lightyear Astro Blasters":"multi","Haunted Mansion":"multi","Indiana Jones Adventure":"multi","it's a small world":"multi","Matterhorn Bobsleds":"multi","Mickey & Minnie's Runaway Railway":"multi","Millennium Falcon: Smugglers Run":"multi","Roger Rabbit's Car Toon Spin":"multi","Space Mountain":"multi","Star Tours – The Adventures Continue":"multi","Tiana's Bayou Adventure":"multi","Star Wars: Rise of the Resistance":"single"};
+const laneOf = r => LANE[r[0]] || '';
 
 // Simplified, not-to-scale map positions (viewBox 600 x 540)
 const ENTRANCE = {x:300,y:505};
@@ -224,28 +261,45 @@ const ICONS = {
 function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
 
 const $ = id => document.getElementById(id);
-const state = {pixar:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
+const state = {pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
 const BATCH = 6;
+const BASE = RIDES.length;   // built-in listings; custom stops are added after these
 const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
 Object.keys(ALIASES).forEach(k => idxByName[k] = idxByName[ALIASES[k]]);
+
+// custom stops (food, rest, other) live after the built-in listings and are saved with the plan
+function ensureCustom(name, kind, land, mins){
+  name = String(name||'').trim().slice(0,60); if(!name) return undefined;
+  kind = kind === 'rest' ? 'rest' : 'food';
+  mins = Math.max(1, Math.min(240, parseInt(mins,10) || 30));
+  if(!(land in LANDS)) land = 'Main Street, U.S.A.';
+  if(idxByName[name] !== undefined && idxByName[name] < BASE) name += ' (my stop)';
+  let i = idxByName[name];
+  if(i !== undefined){ RIDES[i][1]=land; RIDES[i][9]=mins; RIDES[i][12]=kind; return i; }
+  RIDES.push([name, land, 'All ages', 0, false, true, kind==='food' ? 'Your food stop.' : 'Your stop.', 'play', 0, mins, '', '', kind]);
+  i = RIDES.length-1; idxByName[name] = i; return i;
+}
+const customDefs = () => state.sel.filter(i=>i>=BASE).map(i=>[RIDES[i][0], kindOf(RIDES[i]), RIDES[i][1], RIDES[i][9]]);
 
 const scoreOf = i => state.scores[RIDES[i][0]] || 0;
 const LABELS = ['Not rated','Skip','Maybe','Good','Really want','Must do'];
 const starsText = n => n ? '★'.repeat(n) + '☆'.repeat(5-n) : '';
 
-function save(){ try{ localStorage.setItem('dl-plan2', JSON.stringify({sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
+function save(){ try{ localStorage.setItem('dl-plan2', JSON.stringify({c:customDefs(), sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
 function restore(){ try{
   let raw = localStorage.getItem('dl-plan2') || localStorage.getItem('dl-plan');
   const d = JSON.parse(raw||'null'); if(!d) return;
+  (d.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
   state.sel=(d.sel||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
   state.waits=d.waits||{}; state.scores=d.scores||{};
   if(d.start) $('start').value=d.start; if(typeof d.lunch==='boolean') $('lunch').checked=d.lunch; }catch(e){} }
 
 function applyFilters(){
-  let ids = RIDES.map((r,i)=>i).filter(i=>{
+  let ids = RIDES.slice(0,BASE).map((r,i)=>i).filter(i=>{
     const r=RIDES[i];
     if(state.pixar && !r[4]) return false;
     if(state.rides && kindOf(r) !== 'ride') return false;
+    if(state.lane && laneOf(r) !== 'multi') return false;
     if(state.top && scoreOf(i) < 4) return false;
     if(state.little && !r[5]) return false;
     if(state.fit && r[3] > state.ht) return false;
@@ -255,7 +309,7 @@ function applyFilters(){
   state.filtered = ids;
   state.shown = 0;
   $('list').innerHTML = '';
-  $('count').textContent = ids.length + ' of ' + RIDES.length + ' rides';
+  $('count').textContent = ids.length + ' of ' + BASE + ' rides';
   loadMore();
 }
 
@@ -287,7 +341,8 @@ function card(i){
   d.className = 'card';
   const tags = [
     px ? '<span class="tag p">★ Pixar</span>' : '',
-    '<span class="tag">' + KIND_LABEL[kindOf(r)] + '</span>',
+    '<span class="kt" style="--kc:var(--k-'+kindOf(r)+')">' + KIND_LABEL[kindOf(r)] + '</span>',
+    laneOf(r)==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (laneOf(r)==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''),
     '<span class="tag">' + age + '</span>',
     '<span class="tag ' + (fit ? 'ok' : 'no') + '">' + (h ? h + '" minimum' : 'No height minimum') + (fit ? '' : ' – too short') + '</span>'
   ].join('');
@@ -354,7 +409,7 @@ function toggle(id, key){
     applyFilters();
   });
 }
-toggle('fPixar','pixar'); toggle('fRides','rides'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
+toggle('fPixar','pixar'); toggle('fLane','lane'); toggle('fRides','rides'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
 $('ht').addEventListener('input', e => { const v=parseFloat(e.target.value); if(v>0){ state.ht=v; applyFilters(); } });
 
 // ---------- tabs ----------
@@ -427,25 +482,38 @@ function renderTimeline(){
   if(!state.sel.length){ box.innerHTML = '<div class="empty">No rides yet. Go to Rides and tap "+ Add to plan".</div>'; return; }
   const {items,end} = buildTimeline();
   const head = document.createElement('h2'); head.textContent = 'Timeline'; box.appendChild(head);
-  let n = 0;
+  let n = 0, multi = 0, single = 0;
   items.forEach(it => {
     const row = document.createElement('div'); row.className='stop';
     if(it.lunch){
-      row.innerHTML = '<div class="num lunch">🍴</div><div><div class="when"></div><div class="sub">Lunch break, 45 min</div></div><div></div>';
+      row.style.setProperty('--kc','var(--k-food)');
+      row.innerHTML = '<div class="num">🍴</div><div><div class="when"></div><div class="badges"><span class="kt">Food</span></div><div class="sub">Lunch break, 45 min</div></div><div></div>';
       row.querySelector('.when').textContent = fmt(it.at);
     } else {
       n++;
-      const r = RIDES[it.i];
-      row.innerHTML = '<div class="num"></div><div><div class="when"></div><div class="nm" style="font-weight:600"></div><div class="st"></div><div class="sub"></div>'+
-        '<div class="sub" style="margin-top:6px">Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min</div></div>'+
+      const r = RIDES[it.i], kind = kindOf(r), lane = laneOf(r), custom = it.i >= BASE;
+      if(lane==='multi') multi++; if(lane==='single') single++;
+      row.style.setProperty('--kc','var(--k-'+kind+')');
+      row.innerHTML = '<div class="num"></div><div><div class="when"></div><div class="nm" style="font-weight:600"></div><div class="badges"></div><div class="st"></div><div class="sub"></div>'+
+        '<div class="sub adj" style="margin-top:6px"></div></div>'+
         '<div class="mv"><button type="button" class="up" aria-label="Move up">▲</button><button type="button" class="dn" aria-label="Move down">▼</button><button type="button" class="rm" aria-label="Remove">✕</button></div>';
       row.querySelector('.num').textContent = n;
       row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
       row.querySelector('.nm').textContent = r[0];
+      row.querySelector('.badges').innerHTML = '<span class="kt">' + KIND_LABEL[kind] + '</span>' +
+        (lane==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (lane==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''));
       row.querySelector('.st').textContent = starsText(scoreOf(it.i));
-      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + (kindOf(r)==='show'||kindOf(r)==='meet' ? ' · check the app for show times' : '');
-      const wi = row.querySelector('.wait'); wi.value = it.wait;
-      wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + (kind==='show'||kind==='meet' ? ' · check the app for show times' : '');
+      const adj = row.querySelector('.adj');
+      if(custom){
+        adj.innerHTML = 'Length <input class="len" type="number" min="1" max="240" inputmode="numeric"> min';
+        const li = adj.querySelector('.len'); li.value = r[9];
+        li.addEventListener('change', () => { const v=parseInt(li.value,10); r[9] = isNaN(v)?30:Math.max(1,Math.min(240,v)); save(); renderPlan(); });
+      } else {
+        adj.innerHTML = 'Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min';
+        const wi = adj.querySelector('.wait'); wi.value = it.wait;
+        wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
+      }
       const k = state.sel.indexOf(it.i);
       row.querySelector('.up').onclick = () => { if(k>0){ [state.sel[k-1],state.sel[k]]=[state.sel[k],state.sel[k-1]]; save(); renderPlan(); } };
       row.querySelector('.dn').onclick = () => { if(k<state.sel.length-1){ [state.sel[k+1],state.sel[k]]=[state.sel[k],state.sel[k+1]]; save(); renderPlan(); } };
@@ -456,6 +524,11 @@ function renderTimeline(){
   const fin = document.createElement('div'); fin.className='sub'; fin.style.paddingTop='10px';
   fin.textContent = 'Finished around ' + fmt(end) + ' (about ' + (Math.round((end - startMin())/6)/10) + ' hours).';
   box.appendChild(fin);
+  if(multi || single){
+    const ln = document.createElement('div'); ln.className='sub'; ln.id='laneNote'; ln.style.paddingTop='6px';
+    ln.textContent = '⚡ ' + multi + ' of your stops ' + (multi===1?'is':'are') + ' on the Lightning Lane Multi Pass list' + (single ? ' and ' + single + ' is Single Pass only' : '') + ' (list checked Nov 26, 2026). Check the app, because the list changes.';
+    box.appendChild(ln);
+  }
 }
 
 function renderMap(){
@@ -478,8 +551,11 @@ function renderMap(){
     const {items} = buildTimeline();
     let n=0;
     items.forEach(it => { if(it.lunch) return; n++; const p=pos(it.i);
-      s += '<g><circle cx="'+p.x+'" cy="'+p.y+'" r="12" fill="#2f5bd8" stroke="#fff" stroke-width="2"/><text x="'+p.x+'" y="'+(p.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">'+n+'</text></g>';
-      s += '<text x="'+p.x+'" y="'+(p.y-17)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" stroke="var(--map)" stroke-width="3" paint-order="stroke">'+fmt(it.arrive).replace(' AM','a').replace(' PM','p')+'</text>';
+      const rr = RIDES[it.i], kd = kindOf(rr), ln = laneOf(rr);
+      s += '<g>' + (ln ? '<circle class="ring" cx="'+p.x+'" cy="'+p.y+'" r="17" fill="none" style="stroke:var(--lane)" stroke-width="3"'+(ln==='single'?' stroke-dasharray="4 3"':'')+'/>' : '') +
+        '<circle cx="'+p.x+'" cy="'+p.y+'" r="12" style="fill:var(--k-'+kd+')" stroke="#fff" stroke-width="2"/><text x="'+p.x+'" y="'+(p.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--kink)">'+n+'</text>' +
+        (ln ? '<text x="'+(p.x+13)+'" y="'+(p.y-8)+'" font-size="12">⚡</text>' : '') + '</g>';
+      s += '<text x="'+p.x+'" y="'+(p.y-22)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" stroke="var(--map)" stroke-width="3" paint-order="stroke">'+fmt(it.arrive).replace(' AM','a').replace(' PM','p')+'</text>';
     });
   }
   s += '</svg>';
@@ -489,7 +565,7 @@ function renderMap(){
 
 // ---------- save / load by code (works across devices) ----------
 function makeCode(){
-  const o = {s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
+  const o = {c:customDefs(), s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
   return 'DL2.' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 }
 function loadCode(code){
@@ -497,6 +573,7 @@ function loadCode(code){
     code = code.trim();
     if(!(code.startsWith('DL2.') || code.startsWith('DL1.'))) throw 0;
     const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
+    (o.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
     state.sel = (o.s||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
     state.waits = o.w||{};
     if(o.r) state.scores = o.r;
@@ -522,6 +599,16 @@ $('copyLink').onclick = async () => {
   if(!/^https?:/.test(link)){ $('codeIn').value = makeCode(); $('codeMsg').textContent = 'A full link is not available in this view. Use Copy plan code instead.'; return; }
   try{ await navigator.clipboard.writeText(link); $('codeMsg').textContent = 'Copied a link. Anyone who opens it gets this plan and your star scores.'; }
   catch(e){ $('codeIn').value = link; $('codeIn').select(); $('codeMsg').textContent = 'Copy the link from the box (press and hold, then Copy).'; }
+};
+// add a food, rest or custom stop
+Object.keys(LANDS).forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; $('csLand').appendChild(o); });
+$('csAdd').onclick = () => {
+  const i = ensureCustom($('csName').value, $('csKind').value, $('csLand').value, $('csMin').value);
+  if(i === undefined){ $('codeMsg').textContent = 'Type a name for the stop first.'; return; }
+  if(!state.sel.includes(i)) state.sel.push(i);
+  $('csName').value = '';
+  $('codeMsg').textContent = 'Added. Use ▲ ▼ to place it in your day.';
+  updateTab(); save(); renderPlan();
 };
 // Older links and codes keep working: DL1 and DL2 codes, old ride names, and old saved browser data.
 function applyHash(){

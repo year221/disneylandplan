@@ -25,3 +25,10 @@ A single-page app for planning a day at Disneyland Park (Anaheim). No build step
 ## Compatibility
 
 Plan codes (`DL1.` and `DL2.`) and links (`#plan=...`) made by earlier versions keep working. Renamed attractions are mapped to their new names, and plans saved in the browser by earlier versions are still read.
+
+## Activity colors and Lightning Lane Multi Pass
+
+- The plan timeline and map color each stop by type: ride, walk-through, show, play area, meet & greet, food, rest/other. Each stop also carries a text label, so color is not the only cue.
+- ⚡ marks attractions on Disneyland Park's Lightning Lane Multi Pass list (13 attractions). Rise of the Resistance is marked "Single Pass only". The list was taken from Disneyland's Lightning Lane page on Nov 26, 2026. It changes, so confirm in the Disneyland app. To update it, edit the `LANE` table in `index.html`.
+- "Multi Pass" filter on the Rides tab shows only eligible attractions.
+- "Add a food, rest or custom stop" on the plan tab adds your own stops. They are saved in your plan code and link as an optional field, so older codes and links still load.

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disneyland Park Planner</title>
+<style>
+  :root{--bg:#f6f4ef;--card:#fff;--ink:#1d2433;--mute:#6a7385;--line:#e4e0d6;--accent:#2f5bd8;--pixar:#e8542f;--ok:#1f8a4c;--no:#b3392e;--map:#eef3ea;--star:#f2a900}
+  @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1e222d;--ink:#eef0f5;--mute:#9aa3b5;--line:#2c3140;--accent:#7fa0ff;--pixar:#ff7a57;--ok:#4cc783;--no:#ff8478;--map:#1a2420;--star:#ffc233}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px 8px}
+  h1{font-size:19px;margin:0 0 8px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:999px;font-size:14px;cursor:pointer}
+  .chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.px[aria-pressed=true]{background:var(--pixar);border-color:var(--pixar)}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tab{flex:1;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+  .tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  label.h{font-size:14px;color:var(--mute);display:flex;align-items:center;gap:6px}
+  input[type=number],input[type=time]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:15px}
+  input[type=number]{width:64px}
+  #count{font-size:13px;color:var(--mute);margin-top:6px}
+  main{max-width:640px;margin:0 auto;padding:12px 14px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;animation:in .25s ease-out}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .banner{height:56px;display:flex;align-items:center;justify-content:center}
+  .banner svg{width:40px;height:40px}
+  .vidwrap{aspect-ratio:16/9;background:#111;position:relative}
+  .vidwrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .poster{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;cursor:pointer;background:#222 center/cover no-repeat}
+  .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
+  .body{padding:12px 14px 14px}
+  .name{font-size:17px;font-weight:650;margin:0}
+  .land{font-size:13px;color:var(--mute);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{font-size:12.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+  .tag.p{background:var(--pixar);border-color:var(--pixar);color:#fff}
+  .tag.ok{color:var(--ok);border-color:var(--ok)}
+  .tag.no{color:var(--no);border-color:var(--no)}
+  .note{font-size:14px;color:var(--mute);margin:8px 0 0}
+  .stars{display:flex;align-items:center;gap:2px;margin-top:10px}
+  .stars button{border:0;background:none;font-size:28px;line-height:1;padding:2px 3px;cursor:pointer;color:var(--line)}
+  .stars button.on{color:var(--star)}
+  .stars .lbl{font-size:13px;color:var(--mute);margin-left:8px}
+  .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:10px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn.add[aria-pressed=true]{background:var(--ok);border-color:var(--ok);color:#fff}
+  .btn.yt{color:#c4302b;border-color:#c4302b}
+  #sentinel{height:60px;text-align:center;color:var(--mute);font-size:14px;padding-top:14px}
+  .foot{font-size:12.5px;color:var(--mute);text-align:center;margin-top:8px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+  .panel h2{font-size:16px;margin:0 0 8px}
+  .mapbox{background:var(--map);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .mapbox svg{display:block;width:100%;height:auto}
+  .stop{display:grid;grid-template-columns:30px 1fr auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+  .stop:first-of-type{border-top:0}
+  .num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .num.lunch{background:var(--mute)}
+  .when{font-weight:700}
+  .sub{font-size:13px;color:var(--mute)}
+  .mv{display:flex;flex-direction:column;gap:4px}
+  .mv button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:13px}
+  .wait{width:56px;padding:3px 6px;font-size:13px}
+  .empty{color:var(--mute);text-align:center;padding:24px 8px}
+  .st{color:var(--star)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Disneyland Park planner</h1>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabRides" role="tab" aria-selected="true">Rides</button>
+    <button class="tab" id="tabPlan" role="tab" aria-selected="false">My plan (0)</button>
+  </div>
+  <div id="rideControls">
+    <div class="row">
+      <button class="chip px" id="fPixar" aria-pressed="false">★ Pixar</button>
+      <button class="chip" id="fTop" aria-pressed="false">Top picks (4+ stars)</button>
+      <button class="chip" id="fSort" aria-pressed="false">Best score first</button>
+      <button class="chip" id="fFit" aria-pressed="false">Can ride</button>
+      <button class="chip" id="fLittle" aria-pressed="false">Gentle only</button>
+      <label class="h">Height <input id="ht" type="number" min="30" max="70" value="45" inputmode="numeric"> in</label>
+    </div>
+    <div id="count"></div>
+  </div>
+</header>
+
+<main>
+  <section id="viewRides">
+    <div id="list"></div>
+    <div id="sentinel">Loading more…</div>
+    <div class="foot">Heights and ride status change. Confirm in the Disneyland app and at the ride entrance. Videos are made by other people and are not affiliated with this page.</div>
+  </section>
+
+  <section id="viewPlan" hidden>
+    <div class="panel">
+      <div class="row">
+        <label class="h">Arrive at the gate <input id="start" type="time" value="08:00"></label>
+        <label class="h"><input id="lunch" type="checkbox" checked> 45 min lunch around 11:30</label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="addTop">Add all 4+ star rides</button>
+        <button class="btn" id="auto">Auto-order route</button>
+        <button class="btn" id="clear">Clear plan</button>
+        <button class="btn" id="copyCode">Copy plan code</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="codeIn" type="text" placeholder="Paste a plan code to load it" style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px">
+        <button class="btn" id="loadCode">Load</button>
+      </div>
+      <p class="sub" id="codeMsg" style="margin:6px 0 0"></p>
+      <p class="sub" style="margin:10px 0 0">Waits are rough guesses for a typical day. Edit the minutes on any stop and the times update. Walk times come from this simplified map, not exact distances.</p>
+    </div>
+    <div class="mapbox" id="map"></div>
+    <div class="panel" id="timeline"></div>
+    <div class="foot">Arrive times are when you should reach the ride entrance.</div>
+  </section>
+</main>
+
+<script>
+// 0 name, 1 land, 2 age, 3 minHeight(in), 4 pixar, 5 gentle, 6 note, 7 icon, 8 default wait (min), 9 ride length (min), 10 YouTube id, 11 video note
+const RIDES = [
+ ["Disneyland Railroad","Main Street, U.S.A.","All ages",0,false,true,"Circles the park with stops in several lands. A good rest.","train",15,20,"EVLzkBAPmb8"],
+ ["Jungle Cruise","Adventureland","All ages",0,false,true,"Boat tour with jokes.","boat",30,8,"279wFQoV9BU"],
+ ["Indiana Jones Adventure","Adventureland","Ages 8+",46,false,false,"Bumpy, dark jeep ride.","car",45,4,"pNX3pTCXEWI"],
+ ["Pirates of the Caribbean","New Orleans Square","All ages",0,false,true,"Dark boat ride with one small drop. Some 6-year-olds find it spooky.","boat",20,15,"OTZIfXAeCfA"],
+ ["Haunted Mansion","New Orleans Square","All ages",0,false,true,"Spooky but not scary for most. Ghosts and a dark room.","car",25,9,"_8kgt7jPdos","The video shows the Holiday version, which runs for part of the year. The regular version looks different."],
+ ["Tiana's Bayou Adventure","Critter Country","Ages 6+",40,false,false,"Gentle boat ride that ends in a big splashy drop.","boat",45,11,"DoJeNJc3T0w"],
+ ["Big Thunder Mountain Railroad","Frontierland","Ages 6+",40,false,false,"Mild mine-train coaster.","coaster",40,4,"vxKR0bHsALk"],
+ ["Mark Twain Riverboat","Frontierland","All ages",0,false,true,"Slow sightseeing cruise.","boat",15,14,"BaXK5kdDjTY"],
+ ["Sailing Ship Columbia","Frontierland","All ages",0,false,true,"Slow sightseeing cruise. Not always running.","boat",10,14,"XcyFy7H5zhA"],
+ ["Millennium Falcon: Smugglers Run","Galaxy's Edge","Ages 6+",38,false,false,"Interactive flight simulator. Kids pick a pilot, gunner or engineer role.","sim",40,5,"GoKAGxQnG7w"],
+ ["Star Wars: Rise of the Resistance","Galaxy's Edge","Ages 7+",40,false,false,"Long, immersive dark ride with a small drop.","sim",60,18,"VmrT0a5zgeE"],
+ ["Peter Pan's Flight","Fantasyland","All ages",0,false,true,"Gentle flying ship over London. Long line.","boat",45,3,"I1KbpQS3wKo"],
+ ["Snow White's Enchanted Wish","Fantasyland","Little kids and up",0,false,true,"Dark ride. The witch is a little scary.","car",20,3,"vMSTmjgxGzw"],
+ ["Pinocchio's Daring Journey","Fantasyland","Little kids and up",0,false,true,"Dark ride. A few scary scenes.","car",20,3,"tjptqBHpyCE"],
+ ["Mr. Toad's Wild Ride","Fantasyland","All ages",0,false,true,"Silly, bumpy car ride through chaos.","car",20,3,"0Y1GKSBptxw"],
+ ["Alice in Wonderland","Fantasyland","All ages",0,false,true,"Gentle caterpillar-car dark ride.","car",20,4,"U5qcStMUlmc"],
+ ["Dumbo the Flying Elephant","Fantasyland","Toddlers and up",0,false,true,"Spinning flying elephants.","spinner",30,2,"DaOYSXFy2EA"],
+ ["King Arthur Carrousel","Fantasyland","All ages",0,false,true,"Classic carousel.","carousel",10,3,"Ne1QryjRXHA"],
+ ["Mad Tea Party","Fantasyland","All ages",0,false,true,"Spinning teacups. You control the spin.","spinner",10,2,"ZuP0zcQ5AtM"],
+ ["Casey Jr. Circus Train","Fantasyland","All ages",0,false,true,"Gentle train ride.","train",20,3,"oie_NDApSVw"],
+ ["Storybook Land Canal Boats","Fantasyland","All ages",0,false,true,"Slow boat past miniature Disney villages.","boat",15,8,"7VkB7Su6En8"],
+ ["it's a small world","Fantasyland","All ages",0,false,true,"Calm boat ride. The song sticks in your head.","boat",15,10,"dSg1mLDc9hM"],
+ ["Matterhorn Bobsleds","Fantasyland","Ages 6+",42,false,false,"Bumpy, fast coaster in the dark. A yeti appears.","coaster",40,3,"irxc-K6oDVU"],
+ ["Bluey's Best Day Ever","Fantasyland","Little kids and up",0,false,true,"Live stage show at the Fantasyland Theatre, not a ride. It premiered in March 2026. Check the app for show times.","show",20,20,"0wWwuoIScHY"],
+ ["Mickey & Minnie's Runaway Railway","Mickey's Toontown","All ages",0,false,true,"3D cartoon ride.","car",40,6,"r45eSpz2iYs"],
+ ["Roger Rabbit's Car Toon Spin","Mickey's Toontown","All ages",0,false,true,"Spinning taxi through a cartoon world. A 2026 refurbishment reportedly stopped the spinning, so check the app.","car",30,4,"4flMwgEC5nU"],
+ ["Chip 'n' Dale's GADGETcoaster","Mickey's Toontown","Little kids and up",35,false,false,"Short, easy coaster, formerly called Gadget's Go Coaster. A good first one.","coaster",25,2,"jQ9Og3qnzHE"],
+ ["Chip 'n Dale Treehouse and Acorn Ball Pit","Mickey's Toontown","Little kids",0,false,true,"Play area, not a ride.","play",0,15,""],
+ ["Space Mountain","Tomorrowland","Ages 6+",40,false,false,"Dark indoor coaster.","coaster",45,3,"i3z_RYkT3l8"],
+ ["Autopia","Tomorrowland","Little kids and up",32,false,false,"Drive a car on a track. Ride along at 32\". Drive alone at 54\".","car",30,5,"29_J8vBqnnE"],
+ ["Star Tours – The Adventures Continue","Tomorrowland","Ages 6+",40,false,false,"3D flight simulator. Bumpy.","sim",25,5,"1DF4fyk6GLo"],
+ ["Buzz Lightyear Astro Blasters","Tomorrowland","All ages",0,true,true,"Shoot targets for points. Pixar pick.","car",25,5,"70z0Ys6qDm0"],
+ ["Finding Nemo Submarine Voyage","Tomorrowland","All ages",0,true,true,"Submarine ride with Nemo and friends. Pixar pick.","boat",25,13,"Zv_SJwHlbWA"],
+ ["Astro Orbitor","Tomorrowland","All ages",0,false,true,"Rocket ride that goes up and around.","spinner",25,2,"KHPvjgWv2M0"],
+ ["Disneyland Monorail","Tomorrowland","All ages",0,false,true,"Station to Downtown Disney.","mono",10,12,"ZXmzITsy9TE"]
+];
+// old names from earlier versions still load from saved plans and codes
+const ALIASES = {"Gadget's Go Coaster":"Chip 'n' Dale's GADGETcoaster"};
+
+// Simplified, not-to-scale map positions (viewBox 600 x 540)
+const ENTRANCE = {x:300,y:505};
+const LANDS = {
+ "Main Street, U.S.A.":{x:300,y:430,c:"#b9852f"},
+ "Adventureland":{x:185,y:345,c:"#2e8b57"},
+ "New Orleans Square":{x:115,y:290,c:"#7a4aa8"},
+ "Critter Country":{x:70,y:215,c:"#8a5a2b"},
+ "Frontierland":{x:160,y:190,c:"#c0602a"},
+ "Galaxy's Edge":{x:95,y:105,c:"#3b4a6b"},
+ "Fantasyland":{x:300,y:195,c:"#2f5bd8"},
+ "Mickey's Toontown":{x:445,y:125,c:"#d14a8a"},
+ "Tomorrowland":{x:450,y:305,c:"#1c8fa8"}
+};
+const HUB = {x:300,y:350};
+
+const ICONS = {
+ boat:'<path d="M8 40h48l-8 12H16z"/><path d="M22 40V24h20v16"/><path d="M4 58q8-5 14 0t14 0 14 0 14 0"/>',
+ coaster:'<path d="M4 54Q14 8 28 40T52 18l8 12"/><rect x="24" y="30" width="14" height="9" rx="3"/>',
+ train:'<rect x="8" y="26" width="32" height="20" rx="3"/><path d="M40 34h14v12H40z"/><path d="M14 26v-10h8v10"/><circle cx="18" cy="52" r="5"/><circle cx="34" cy="52" r="5"/><circle cx="50" cy="52" r="5"/>',
+ carousel:'<path d="M32 8v48"/><path d="M8 26 32 10l24 16z"/><path d="M12 56h40"/><circle cx="20" cy="42" r="6"/><circle cx="44" cy="42" r="6"/>',
+ spinner:'<circle cx="32" cy="32" r="12"/><circle cx="32" cy="10" r="6"/><circle cx="10" cy="40" r="6"/><circle cx="54" cy="40" r="6"/>',
+ car:'<path d="M6 40l6-14h40l6 14z"/><rect x="6" y="40" width="52" height="10" rx="3"/><circle cx="18" cy="54" r="5"/><circle cx="46" cy="54" r="5"/>',
+ sim:'<rect x="8" y="14" width="48" height="28" rx="4"/><path d="M20 42v10h24V42"/><path d="M32 22l3 6h7l-5 4 2 7-7-4-7 4 2-7-5-4h7z"/>',
+ play:'<circle cx="20" cy="40" r="10"/><circle cx="42" cy="44" r="8"/><circle cx="32" cy="22" r="9"/><circle cx="48" cy="24" r="5"/>',
+ show:'<path d="M6 10h52"/><path d="M8 10c0 22 8 34 14 40M56 10c0 22-8 34-14 40"/><path d="M22 50h20"/><path d="M32 18l2.5 5 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z"/>',
+ mono:'<rect x="6" y="22" width="52" height="16" rx="8"/><path d="M16 26v8M26 26v8M36 26v8M46 26v8"/><path d="M2 46h60M10 46v12M54 46v12"/>'
+};
+function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
+
+const $ = id => document.getElementById(id);
+const state = {pixar:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
+const BATCH = 6;
+const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
+Object.keys(ALIASES).forEach(k => idxByName[k] = idxByName[ALIASES[k]]);
+
+const scoreOf = i => state.scores[RIDES[i][0]] || 0;
+const LABELS = ['Not rated','Skip','Maybe','Good','Really want','Must do'];
+const starsText = n => n ? '★'.repeat(n) + '☆'.repeat(5-n) : '';
+
+function save(){ try{ localStorage.setItem('dl-plan2', JSON.stringify({sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
+function restore(){ try{
+  let raw = localStorage.getItem('dl-plan2') || localStorage.getItem('dl-plan');
+  const d = JSON.parse(raw||'null'); if(!d) return;
+  state.sel=(d.sel||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
+  state.waits=d.waits||{}; state.scores=d.scores||{};
+  if(d.start) $('start').value=d.start; if(typeof d.lunch==='boolean') $('lunch').checked=d.lunch; }catch(e){} }
+
+function applyFilters(){
+  let ids = RIDES.map((r,i)=>i).filter(i=>{
+    const r=RIDES[i];
+    if(state.pixar && !r[4]) return false;
+    if(state.top && scoreOf(i) < 4) return false;
+    if(state.little && !r[5]) return false;
+    if(state.fit && r[3] > state.ht) return false;
+    return true;
+  });
+  if(state.sort) ids = ids.map((i,k)=>[i,k]).sort((a,b)=> scoreOf(b[0])-scoreOf(a[0]) || a[1]-b[1]).map(x=>x[0]);
+  state.filtered = ids;
+  state.shown = 0;
+  $('list').innerHTML = '';
+  $('count').textContent = ids.length + ' of ' + RIDES.length + ' rides';
+  loadMore();
+}
+
+function videoBlock(r){
+  const id = r[10];
+  if(!id) return null;
+  const wrap = document.createElement('div'); wrap.className = 'vidwrap';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'poster';
+  b.style.backgroundImage = 'url(https://i.ytimg.com/vi/' + id + '/hqdefault.jpg)';
+  b.setAttribute('aria-label', 'Play video: ' + r[0]);
+  b.innerHTML = '<span class="play">▶</span>';
+  b.addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.allowFullscreen = true; f.title = 'Ride video: ' + r[0];
+    wrap.replaceChild(f, b);
+  });
+  wrap.appendChild(b);
+  return wrap;
+}
+
+function card(i){
+  const r = RIDES[i];
+  const [name,land,age,h,px,gentle,note,type] = r;
+  const fit = h <= state.ht;
+  const col = (LANDS[land]||{}).c || '#6a7385';
+  const d = document.createElement('div');
+  d.className = 'card';
+  const tags = [
+    px ? '<span class="tag p">★ Pixar</span>' : '',
+    '<span class="tag">' + age + '</span>',
+    '<span class="tag ' + (fit ? 'ok' : 'no') + '">' + (h ? h + '" minimum' : 'No height minimum') + (fit ? '' : ' – too short') + '</span>'
+  ].join('');
+  d.innerHTML = '<div class="banner" style="background:linear-gradient(135deg,'+col+','+col+'bb)">'+icon(type)+'</div>'+
+    '<div class="body"><h2 class="name"></h2><div class="land"></div><div class="tags">'+tags+'</div><p class="note"></p>'+
+    '<div class="stars" role="group"></div>'+
+    '<p class="note vnote" hidden></p>'+
+    '<div class="acts"><button class="btn add" type="button"></button><a class="btn yt" target="_blank" rel="noopener"></a></div></div>';
+  d.querySelector('.name').textContent = name;
+  d.querySelector('.land').textContent = land;
+  d.querySelector('.note').textContent = note;
+  const vb = videoBlock(r);
+  if(vb) d.insertBefore(vb, d.querySelector('.body'));
+  if(r[11]){ const vn = d.querySelector('.vnote'); vn.textContent = r[11]; vn.hidden = false; }
+
+  // preference score
+  const stars = d.querySelector('.stars');
+  stars.setAttribute('aria-label', 'Your score for ' + name);
+  const btns = [];
+  for(let s=1; s<=5; s++){
+    const b = document.createElement('button'); b.type='button'; b.textContent='★'; b.setAttribute('aria-label', s+' of 5: '+LABELS[s]);
+    b.addEventListener('click', () => {
+      if(scoreOf(i) === s) delete state.scores[name]; else state.scores[name] = s;
+      paintStars(); save();
+      if(state.sort || state.top) { /* list order changes the next time a filter is toggled */ }
+    });
+    btns.push(b); stars.appendChild(b);
+  }
+  const lbl = document.createElement('span'); lbl.className='lbl'; stars.appendChild(lbl);
+  const paintStars = () => { const sc = scoreOf(i); btns.forEach((b,k)=>b.classList.toggle('on', k < sc)); lbl.textContent = LABELS[sc]; };
+  paintStars();
+
+  const yt = d.querySelector('.yt');
+  if(r[10]){ yt.href = 'https://www.youtube.com/watch?v=' + r[10]; yt.textContent = '▶ Open on YouTube'; }
+  else { yt.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' Disneyland'); yt.textContent = '▶ Search YouTube'; }
+
+  const add = d.querySelector('.add');
+  const paint = () => { const on = state.sel.includes(i); add.setAttribute('aria-pressed', on); add.textContent = on ? '✓ In my plan' : '+ Add to plan'; };
+  paint();
+  add.addEventListener('click', () => {
+    const k = state.sel.indexOf(i);
+    if(k>=0) state.sel.splice(k,1); else state.sel.push(i);
+    paint(); updateTab(); save();
+  });
+  return d;
+}
+
+function loadMore(){
+  const next = state.filtered.slice(state.shown, state.shown + BATCH);
+  next.forEach(i => $('list').appendChild(card(i)));
+  state.shown += next.length;
+  const done = state.shown >= state.filtered.length;
+  $('sentinel').textContent = state.filtered.length === 0 ? 'No rides match these filters.' : (done ? "That's every ride." : 'Loading more…');
+}
+const io = new IntersectionObserver(es => {
+  if(es[0].isIntersecting && state.shown < state.filtered.length) loadMore();
+}, {rootMargin:'300px'});
+io.observe($('sentinel'));
+
+function toggle(id, key){
+  $(id).addEventListener('click', () => {
+    state[key] = !state[key];
+    $(id).setAttribute('aria-pressed', state[key]);
+    applyFilters();
+  });
+}
+toggle('fPixar','pixar'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
+$('ht').addEventListener('input', e => { const v=parseFloat(e.target.value); if(v>0){ state.ht=v; applyFilters(); } });
+
+// ---------- tabs ----------
+function updateTab(){ $('tabPlan').textContent = 'My plan (' + state.sel.length + ')'; }
+function showTab(which){
+  const plan = which==='plan';
+  $('tabRides').setAttribute('aria-selected', !plan);
+  $('tabPlan').setAttribute('aria-selected', plan);
+  $('viewRides').hidden = plan; $('viewPlan').hidden = !plan; $('rideControls').hidden = plan;
+  if(plan) renderPlan(); else applyFilters();
+  window.scrollTo(0,0);
+}
+$('tabRides').onclick = () => showTab('rides');
+$('tabPlan').onclick = () => showTab('plan');
+
+// ---------- plan ----------
+function pos(i){
+  const r = RIDES[i], L = LANDS[r[1]] || HUB;
+  const same = RIDES.map((x,j)=>j).filter(j=>RIDES[j][1]===r[1]);
+  const k = same.indexOf(i);
+  return {x: L.x + ((k%3)-1)*20, y: L.y + (((Math.floor(k/3))%4)-1.5)*16};
+}
+const waitOf = i => (state.waits[RIDES[i][0]] ?? RIDES[i][8]);
+function fmt(m){ m=Math.round(m); let h=Math.floor(m/60)%24, mm=m%60; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+String(mm).padStart(2,'0')+' '+ap; }
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+const walkMin = (a,b) => Math.max(1, Math.round(dist(a,b)/22));
+
+function autoOrder(){
+  if(!state.sel.length) return;
+  const left = state.sel.slice();
+  const first = left.reduce((a,b)=> waitOf(b)>waitOf(a)?b:a);
+  const out=[first]; left.splice(left.indexOf(first),1);
+  while(left.length){
+    const cur = pos(out[out.length-1]);
+    let best=0, bd=1e9;
+    left.forEach((i,k)=>{ const d=dist(cur,pos(i)); if(d<bd){bd=d;best=k;} });
+    out.push(left.splice(best,1)[0]);
+  }
+  state.sel = out; save(); renderPlan();
+}
+$('auto').onclick = autoOrder;
+$('addTop').onclick = () => {
+  let n = 0;
+  RIDES.forEach((r,i) => { if(scoreOf(i) >= 4 && !state.sel.includes(i)){ state.sel.push(i); n++; } });
+  $('codeMsg').textContent = n ? ('Added ' + n + ' ride' + (n>1?'s':'') + '. Tap Auto-order route to sort them by walking distance.') : 'No new 4+ star rides to add. Rate rides on the Rides tab first.';
+  updateTab(); save(); renderPlan();
+};
+$('clear').onclick = () => { state.sel=[]; updateTab(); save(); renderPlan(); };
+$('start').addEventListener('input', () => { save(); renderPlan(); });
+$('lunch').addEventListener('change', () => { save(); renderPlan(); });
+
+function startMin(){ const [h,m] = ($('start').value||'08:00').split(':').map(Number); return h*60+m; }
+
+function buildTimeline(){
+  let t = startMin(), here = ENTRANCE, lunchDone = !$('lunch').checked;
+  const items = [];
+  state.sel.forEach(i => {
+    if(!lunchDone && t >= 11*60+30){ items.push({lunch:true, at:t}); t += 45; lunchDone = true; }
+    const p = pos(i), w = walkMin(here,p), arrive = t + w, wait = waitOf(i), dur = RIDES[i][9];
+    items.push({i, walk:w, arrive, wait, dur, off: arrive+wait+dur});
+    t = arrive + wait + dur; here = p;
+  });
+  return {items, end:t};
+}
+
+function renderPlan(){ renderMap(); renderTimeline(); }
+
+function renderTimeline(){
+  const box = $('timeline'); box.innerHTML = '';
+  if(!state.sel.length){ box.innerHTML = '<div class="empty">No rides yet. Go to Rides and tap "+ Add to plan".</div>'; return; }
+  const {items,end} = buildTimeline();
+  const head = document.createElement('h2'); head.textContent = 'Timeline'; box.appendChild(head);
+  let n = 0;
+  items.forEach(it => {
+    const row = document.createElement('div'); row.className='stop';
+    if(it.lunch){
+      row.innerHTML = '<div class="num lunch">🍴</div><div><div class="when"></div><div class="sub">Lunch break, 45 min</div></div><div></div>';
+      row.querySelector('.when').textContent = fmt(it.at);
+    } else {
+      n++;
+      const r = RIDES[it.i];
+      row.innerHTML = '<div class="num"></div><div><div class="when"></div><div class="nm" style="font-weight:600"></div><div class="st"></div><div class="sub"></div>'+
+        '<div class="sub" style="margin-top:6px">Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min</div></div>'+
+        '<div class="mv"><button type="button" class="up" aria-label="Move up">▲</button><button type="button" class="dn" aria-label="Move down">▼</button><button type="button" class="rm" aria-label="Remove">✕</button></div>';
+      row.querySelector('.num').textContent = n;
+      row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
+      row.querySelector('.nm').textContent = r[0];
+      row.querySelector('.st').textContent = starsText(scoreOf(it.i));
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · off the ride ~' + fmt(it.off);
+      const wi = row.querySelector('.wait'); wi.value = it.wait;
+      wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
+      const k = state.sel.indexOf(it.i);
+      row.querySelector('.up').onclick = () => { if(k>0){ [state.sel[k-1],state.sel[k]]=[state.sel[k],state.sel[k-1]]; save(); renderPlan(); } };
+      row.querySelector('.dn').onclick = () => { if(k<state.sel.length-1){ [state.sel[k+1],state.sel[k]]=[state.sel[k],state.sel[k+1]]; save(); renderPlan(); } };
+      row.querySelector('.rm').onclick = () => { state.sel.splice(k,1); updateTab(); save(); renderPlan(); };
+    }
+    box.appendChild(row);
+  });
+  const fin = document.createElement('div'); fin.className='sub'; fin.style.paddingTop='10px';
+  fin.textContent = 'Finished around ' + fmt(end) + ' (about ' + (Math.round((end - startMin())/6)/10) + ' hours).';
+  box.appendChild(fin);
+}
+
+function renderMap(){
+  let s = '<svg viewBox="0 0 600 540" role="img" aria-label="Simplified Disneyland Park map with your route">';
+  s += '<g stroke="currentColor" stroke-opacity=".25" stroke-width="10" stroke-linecap="round" fill="none">';
+  s += '<path d="M300 505V350"/>';
+  Object.keys(LANDS).forEach(k => { if(k==="Main Street, U.S.A.") return; const L=LANDS[k]; s += '<path d="M'+HUB.x+' '+HUB.y+'L'+L.x+' '+L.y+'"/>'; });
+  s += '</g>';
+  Object.keys(LANDS).forEach(k => {
+    const L = LANDS[k];
+    s += '<ellipse cx="'+L.x+'" cy="'+L.y+'" rx="62" ry="36" fill="'+L.c+'" fill-opacity=".22" stroke="'+L.c+'" stroke-width="2"/>';
+    s += '<text x="'+L.x+'" y="'+(L.y+54)+'" text-anchor="middle" font-size="12" fill="currentColor" fill-opacity=".8">'+k.replace('&','&amp;')+'</text>';
+  });
+  s += '<circle cx="'+HUB.x+'" cy="'+HUB.y+'" r="12" fill="currentColor" fill-opacity=".35"/><text x="'+HUB.x+'" y="'+(HUB.y-18)+'" text-anchor="middle" font-size="11" fill="currentColor" fill-opacity=".8">Castle hub</text>';
+  s += '<rect x="'+(ENTRANCE.x-34)+'" y="'+(ENTRANCE.y-10)+'" width="68" height="22" rx="6" fill="currentColor" fill-opacity=".8"/><text x="'+ENTRANCE.x+'" y="'+(ENTRANCE.y+5)+'" text-anchor="middle" font-size="12" fill="#fff">Entrance</text>';
+  if(state.sel.length){
+    let pts = ENTRANCE.x+','+ENTRANCE.y;
+    state.sel.forEach(i => { const p=pos(i); pts += ' '+p.x+','+p.y; });
+    s += '<polyline points="'+pts+'" fill="none" stroke="#e8542f" stroke-width="3" stroke-dasharray="7 6" stroke-linejoin="round"/>';
+    const {items} = buildTimeline();
+    let n=0;
+    items.forEach(it => { if(it.lunch) return; n++; const p=pos(it.i);
+      s += '<g><circle cx="'+p.x+'" cy="'+p.y+'" r="12" fill="#2f5bd8" stroke="#fff" stroke-width="2"/><text x="'+p.x+'" y="'+(p.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">'+n+'</text></g>';
+      s += '<text x="'+p.x+'" y="'+(p.y-17)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" stroke="var(--map)" stroke-width="3" paint-order="stroke">'+fmt(it.arrive).replace(' AM','a').replace(' PM','p')+'</text>';
+    });
+  }
+  s += '</svg>';
+  $('map').innerHTML = s;
+  $('map').style.color = getComputedStyle(document.body).color;
+}
+
+// ---------- save / load by code (works across devices) ----------
+function makeCode(){
+  const o = {s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
+  return 'DL2.' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+}
+function loadCode(code){
+  try{
+    code = code.trim();
+    if(!(code.startsWith('DL2.') || code.startsWith('DL1.'))) throw 0;
+    const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
+    state.sel = (o.s||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
+    state.waits = o.w||{};
+    if(o.r) state.scores = o.r;
+    if(o.t) $('start').value = o.t;
+    $('lunch').checked = o.l !== false;
+    updateTab(); save(); renderPlan();
+    return true;
+  }catch(e){ return false; }
+}
+$('copyCode').onclick = async () => {
+  const c = makeCode();
+  try{ await navigator.clipboard.writeText(c); $('codeMsg').textContent = 'Copied. Save it in Notes or text it to yourself. It includes your star scores.'; }
+  catch(e){ $('codeIn').value = c; $('codeIn').select(); $('codeMsg').textContent = 'Copy this code from the box (press and hold, then Copy).'; }
+};
+$('loadCode').onclick = () => {
+  $('codeMsg').textContent = loadCode($('codeIn').value) ? 'Plan loaded.' : 'That code did not work. Check that you pasted all of it.';
+};
+
+restore();
+try{ if(location.hash.startsWith('#plan=')) loadCode(decodeURIComponent(location.hash.slice(6))); }catch(e){}
+updateTab(); applyFilters();
+</script>
+</body>
+</html>

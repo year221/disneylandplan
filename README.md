@@ -62,3 +62,7 @@ Each stop shows an approximate ride or show length (⏱) on the plan and on the 
 ## Moving stops quickly
 
 Each stop in the plan has "Move to #" (type a position and press Move or Enter), plus ⤒ Front and ⤓ End buttons. The ▲ ▼ buttons still move one step. Positions count stops only, not the lunch row.
+
+## Search
+
+The Rides tab has a search box above the filters. It matches ride name, land, age group, type, the notes and the Pixar and Multi Pass tags. Several words must all match, and case and punctuation are ignored. It combines with the filter chips, and × or Esc clears it.

@@ -60,6 +60,9 @@
   .num.lunch{background:var(--mute)}
   .when{font-weight:700}
   .sub{font-size:13px;color:var(--mute)}
+  .searchbox{position:relative;margin:0 0 8px}
+  .searchbox input{width:100%;box-sizing:border-box;padding:10px 38px 10px 12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+  .searchbox button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mute);font-size:20px;line-height:1;padding:6px 10px;cursor:pointer}
   .jump{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:13px}
   .jump input{width:56px;padding:3px 6px;font-size:13px}
   .jump button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:13px}
@@ -101,6 +104,10 @@
     <button class="tab" id="tabPlan" role="tab" aria-selected="false">My plan (0)</button>
   </div>
   <div id="rideControls">
+    <div class="searchbox">
+      <input id="q" type="search" placeholder="Search rides, shows, lands…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search rides, shows and lands">
+      <button type="button" id="qClear" aria-label="Clear search" hidden>×</button>
+    </div>
     <div class="row">
       <button class="chip px" id="fPixar" aria-pressed="false">★ Pixar</button>
       <button class="chip" id="fLane" aria-pressed="false">⚡ Multi Pass</button>
@@ -295,7 +302,7 @@ const ICONS = {
 function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
 
 const $ = id => document.getElementById(id);
-const state = {pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}, showPick:{}};
+const state = {q:'', pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}, showPick:{}};
 const BATCH = 6;
 const BASE = RIDES.length;   // built-in listings; custom stops are added after these
 const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
@@ -331,6 +338,7 @@ function restore(){ try{
 function applyFilters(){
   let ids = RIDES.slice(0,BASE).map((r,i)=>i).filter(i=>{
     const r=RIDES[i];
+    if(state.qw && state.qw.length){ const hay = norm([r[0], r[1], r[2], r[6], KIND_LABEL[kindOf(r)], r[4] ? 'pixar' : '', laneOf(r) ? 'multi pass lightning lane' : ''].join(' ')); if(!state.qw.every(w => hay.includes(w))) return false; }
     if(state.pixar && !r[4]) return false;
     if(state.rides && kindOf(r) !== 'ride') return false;
     if(state.lane && laneOf(r) !== 'multi') return false;
@@ -343,7 +351,7 @@ function applyFilters(){
   state.filtered = ids;
   state.shown = 0;
   $('list').innerHTML = '';
-  $('count').textContent = ids.length + ' of ' + BASE + ' rides';
+  $('count').textContent = ids.length + ' of ' + BASE + ' rides' + (state.qw && state.qw.length ? ' matching "' + state.q.trim() + '"' : '');
   loadMore();
 }
 
@@ -432,7 +440,7 @@ function loadMore(){
   next.forEach(i => $('list').appendChild(card(i)));
   state.shown += next.length;
   const done = state.shown >= state.filtered.length;
-  $('sentinel').textContent = state.filtered.length === 0 ? 'No rides match these filters.' : (done ? "That's every ride." : 'Loading more…');
+  $('sentinel').textContent = state.filtered.length === 0 ? 'No matches. Try fewer words or clear a filter.' : (done ? "That's every ride." : 'Loading more…');
 }
 const io = new IntersectionObserver(es => {
   if(es[0].isIntersecting && state.shown < state.filtered.length) loadMore();
@@ -447,6 +455,10 @@ function toggle(id, key){
   });
 }
 toggle('fPixar','pixar'); toggle('fLane','lane'); toggle('fRides','rides'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
+let qTimer = null;
+$('q').addEventListener('input', () => { const v = $('q').value; $('qClear').hidden = !v; clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = v; state.qw = norm(v).split(' ').filter(Boolean); applyFilters(); }, 120); });
+$('q').addEventListener('keydown', e => { if(e.key==='Escape'){ $('qClear').click(); } });
+$('qClear').onclick = () => { $('q').value = ''; $('qClear').hidden = true; clearTimeout(qTimer); state.q = ''; state.qw = []; applyFilters(); $('q').focus(); };
 $('ht').addEventListener('input', e => { const v=parseFloat(e.target.value); if(v>0){ state.ht=v; applyFilters(); } });
 
 // ---------- tabs ----------

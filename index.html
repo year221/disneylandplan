@@ -78,6 +78,7 @@
   <div id="rideControls">
     <div class="row">
       <button class="chip px" id="fPixar" aria-pressed="false">★ Pixar</button>
+      <button class="chip" id="fRides" aria-pressed="false">Rides only</button>
       <button class="chip" id="fTop" aria-pressed="false">Top picks (4+ stars)</button>
       <button class="chip" id="fSort" aria-pressed="false">Best score first</button>
       <button class="chip" id="fFit" aria-pressed="false">Can ride</button>
@@ -106,6 +107,7 @@
         <button class="btn" id="auto">Auto-order route</button>
         <button class="btn" id="clear">Clear plan</button>
         <button class="btn" id="copyCode">Copy plan code</button>
+        <button class="btn" id="copyLink">Copy plan link</button>
       </div>
       <div class="row" style="margin-top:10px">
         <input id="codeIn" type="text" placeholder="Paste a plan code to load it" style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px">
@@ -121,6 +123,7 @@
 </main>
 
 <script>
+// 12 kind (ride, show, walk, play, meet; blank = ride)
 // 0 name, 1 land, 2 age, 3 minHeight(in), 4 pixar, 5 gentle, 6 note, 7 icon, 8 default wait (min), 9 ride length (min), 10 YouTube id, 11 video note
 const RIDES = [
  ["Disneyland Railroad","Main Street, U.S.A.","All ages",0,false,true,"Circles the park with stops in several lands. A good rest.","train",15,20,"EVLzkBAPmb8"],
@@ -128,7 +131,7 @@ const RIDES = [
  ["Indiana Jones Adventure","Adventureland","Ages 8+",46,false,false,"Bumpy, dark jeep ride.","car",45,4,"pNX3pTCXEWI"],
  ["Pirates of the Caribbean","New Orleans Square","All ages",0,false,true,"Dark boat ride with one small drop. Some 6-year-olds find it spooky.","boat",20,15,"OTZIfXAeCfA"],
  ["Haunted Mansion","New Orleans Square","All ages",0,false,true,"Spooky but not scary for most. Ghosts and a dark room.","car",25,9,"_8kgt7jPdos","The video shows the Holiday version, which runs for part of the year. The regular version looks different."],
- ["Tiana's Bayou Adventure","Critter Country","Ages 6+",40,false,false,"Gentle boat ride that ends in a big splashy drop.","boat",45,11,"DoJeNJc3T0w"],
+ ["Tiana's Bayou Adventure","Bayou Country","Ages 6+",40,false,false,"Gentle boat ride that ends in a big splashy drop.","boat",45,11,"DoJeNJc3T0w"],
  ["Big Thunder Mountain Railroad","Frontierland","Ages 6+",40,false,false,"Mild mine-train coaster.","coaster",40,4,"vxKR0bHsALk"],
  ["Mark Twain Riverboat","Frontierland","All ages",0,false,true,"Slow sightseeing cruise.","boat",15,14,"BaXK5kdDjTY"],
  ["Sailing Ship Columbia","Frontierland","All ages",0,false,true,"Slow sightseeing cruise. Not always running.","boat",10,14,"XcyFy7H5zhA"],
@@ -146,21 +149,50 @@ const RIDES = [
  ["Storybook Land Canal Boats","Fantasyland","All ages",0,false,true,"Slow boat past miniature Disney villages.","boat",15,8,"7VkB7Su6En8"],
  ["it's a small world","Fantasyland","All ages",0,false,true,"Calm boat ride. The song sticks in your head.","boat",15,10,"dSg1mLDc9hM"],
  ["Matterhorn Bobsleds","Fantasyland","Ages 6+",42,false,false,"Bumpy, fast coaster in the dark. A yeti appears.","coaster",40,3,"irxc-K6oDVU"],
- ["Bluey's Best Day Ever","Fantasyland","Little kids and up",0,false,true,"Live stage show at the Fantasyland Theatre, not a ride. It premiered in March 2026. Check the app for show times.","show",20,20,"0wWwuoIScHY"],
+ ["Bluey's Best Day Ever","Fantasyland","Little kids and up",0,false,true,"Live stage show at the Fantasyland Theatre, not a ride. It premiered in March 2026. Check the app for show times.","show",20,20,"0wWwuoIScHY","","show"],
  ["Mickey & Minnie's Runaway Railway","Mickey's Toontown","All ages",0,false,true,"3D cartoon ride.","car",40,6,"r45eSpz2iYs"],
  ["Roger Rabbit's Car Toon Spin","Mickey's Toontown","All ages",0,false,true,"Spinning taxi through a cartoon world. A 2026 refurbishment reportedly stopped the spinning, so check the app.","car",30,4,"4flMwgEC5nU"],
  ["Chip 'n' Dale's GADGETcoaster","Mickey's Toontown","Little kids and up",35,false,false,"Short, easy coaster, formerly called Gadget's Go Coaster. A good first one.","coaster",25,2,"jQ9Og3qnzHE"],
- ["Chip 'n Dale Treehouse and Acorn Ball Pit","Mickey's Toontown","Little kids",0,false,true,"Play area, not a ride.","play",0,15,""],
+ ["CenTOONial Park","Mickey's Toontown","Little kids",0,false,true,"Play area in Mickey's Toontown, not a ride.","play",0,20,"","","play"],
  ["Space Mountain","Tomorrowland","Ages 6+",40,false,false,"Dark indoor coaster.","coaster",45,3,"i3z_RYkT3l8"],
  ["Autopia","Tomorrowland","Little kids and up",32,false,false,"Drive a car on a track. Ride along at 32\". Drive alone at 54\".","car",30,5,"29_J8vBqnnE"],
  ["Star Tours – The Adventures Continue","Tomorrowland","Ages 6+",40,false,false,"3D flight simulator. Bumpy.","sim",25,5,"1DF4fyk6GLo"],
  ["Buzz Lightyear Astro Blasters","Tomorrowland","All ages",0,true,true,"Shoot targets for points. Pixar pick.","car",25,5,"70z0Ys6qDm0"],
  ["Finding Nemo Submarine Voyage","Tomorrowland","All ages",0,true,true,"Submarine ride with Nemo and friends. Pixar pick.","boat",25,13,"Zv_SJwHlbWA"],
  ["Astro Orbitor","Tomorrowland","All ages",0,false,true,"Rocket ride that goes up and around.","spinner",25,2,"KHPvjgWv2M0"],
- ["Disneyland Monorail","Tomorrowland","All ages",0,false,true,"Station to Downtown Disney.","mono",10,12,"ZXmzITsy9TE"]
+ ["Disneyland Monorail","Tomorrowland","All ages",0,false,true,"Station to Downtown Disney.","mono",10,12,"ZXmzITsy9TE"],
+ ["The Many Adventures of Winnie the Pooh","Bayou Country","Toddlers and up",0,false,true,"Gentle dark ride through the Hundred Acre Wood.","car",20,4,"5isOutkxA08","","ride"],
+ ["Walt Disney's Enchanted Tiki Room","Adventureland","All ages",0,false,true,"Singing birds and tiki gods in a cool, seated show. Show times are fixed.","show",10,15,"TBYScKdqI4A","","show"],
+ ["Adventureland Treehouse","Adventureland","All ages",0,false,true,"Walk-through treehouse inspired by Swiss Family Robinson. Expect stairs.","play",0,20,"Y019lQvpeyI","","walk"],
+ ["Davy Crockett's Explorer Canoes","Frontierland","Little kids and up",0,false,true,"You paddle the canoe yourself. May be seasonal, so check the app.","boat",20,15,"","","ride"],
+ ["Pirate's Lair on Tom Sawyer Island","Frontierland","All ages",0,false,true,"Island with caves and bridges in the Rivers of America. Check the app for whether it is open.","play",15,40,"","","walk"],
+ ["Fantasmic!","Frontierland","All ages",0,false,true,"Evening show on the Rivers of America with water, fire and villains. Some scenes can scare little kids. Show times are fixed, so arrive early for a seat.","show",45,30,"1jBWiZ5EPKY","","show"],
+ ["Sleeping Beauty Castle Walkthrough","Fantasyland","All ages",0,false,true,"Walk through storybook scenes inside the castle. Expect stairs.","play",5,15,"os9e2qaqteA","","walk"],
+ ["Minnie's House","Mickey's Toontown","All ages",0,false,true,"Walk-through house.","play",10,10,"","","walk"],
+ ["Goofy's How-to-Play Yard","Mickey's Toontown","Little kids",0,false,true,"Play area.","play",0,20,"","","play"],
+ ["Donald's Duck Pond","Mickey's Toontown","Little kids",0,false,true,"Play area.","play",0,15,"","","play"],
+ ["Great Moments with Mr. Lincoln","Main Street, U.S.A.","All ages",0,false,true,"Seated presentation about Abraham Lincoln. Calm and a bit slow for kids.","show",10,20,"","","show"],
+ ["Walt Disney – A Magical Life","Main Street, U.S.A.","All ages",0,false,true,"Seated presentation about Walt Disney.","show",10,15,"","","show"],
+ ["Main Street Cinema","Main Street, U.S.A.","All ages",0,false,true,"Classic cartoons shown in a small theater.","show",0,10,"","","show"],
+ ["Main Street Vehicles","Main Street, U.S.A.","All ages",0,false,true,"Slow vehicle rides along Main Street.","train",10,8,"","","ride"],
+ ["The Disney Gallery","Main Street, U.S.A.","All ages",0,false,true,"Art exhibit. A quiet break.","play",0,15,"","","walk"],
+ ["Fortune Tellers","Land not confirmed","All ages",0,false,true,"Listed on Disneyland's attractions page. Land not confirmed, so the map places it at the hub.","play",5,5,"","","play"],
+ ["Frontierland Shootin' Exposition","Frontierland","Little kids and up",0,false,true,"Arcade game in Frontierland.","play",5,10,"","","play"],
+ ["Pixar Short Film Spotlight","Land not confirmed","All ages",0,true,true,"Disneyland's website lists this as currently unavailable. Check the app.","show",0,15,"","","show"],
+ ["Wondrous Journeys","Main Street, U.S.A.","All ages",0,false,true,"Nighttime fireworks. Main Street is a popular spot to watch. Check the app for times.","show",45,15,"","","show"],
+ ["Mickey's Mix Magic","Land not confirmed","All ages",0,false,true,"Nighttime projection show. Check the app for where and when.","show",30,15,"","","show"],
+ ["Fire of the Rising Moons","Galaxy's Edge","All ages",0,false,true,"Show in Star Wars: Galaxy's Edge. Check the app for times.","show",20,15,"","","show"],
+ ["Shadows of Memory: A Skywalker Saga","Galaxy's Edge","All ages",0,false,true,"Show in Star Wars: Galaxy's Edge. Check the app for times.","show",20,15,"","","show"],
+ ["Storytelling at Royal Theatre","Fantasyland","Little kids and up",0,false,true,"Storytelling show at Fantasy Faire. Check the app for times.","show",10,20,"","","show"],
+ ["Meet Disney Princesses at Royal Hall","Fantasyland","All ages",0,false,true,"Character meet-and-greet at Fantasy Faire. Lines vary.","show",30,10,"","","meet"],
+ ["Meet Tinker Bell in Pixie Hollow","Fantasyland","All ages",0,false,true,"Character meet-and-greet.","show",30,10,"","","meet"],
+ ["Stitch's Interplanetary Beach Party Blast","Land not confirmed","All ages",0,false,true,"Show listed on Disneyland's website. Check the app for where and when.","show",20,20,"","","show"],
+ ["The Dapper Dans","Main Street, U.S.A.","All ages",0,false,true,"Barbershop quartet that performs along Main Street. Check the app for times.","show",0,10,"","","show"]
 ];
 // old names from earlier versions still load from saved plans and codes
-const ALIASES = {"Gadget's Go Coaster":"Chip 'n' Dale's GADGETcoaster"};
+const ALIASES = {"Gadget's Go Coaster":"Chip 'n' Dale's GADGETcoaster","Chip 'n Dale Treehouse and Acorn Ball Pit":"CenTOONial Park"};
+const kindOf = r => r[12] || 'ride';
+const KIND_LABEL = {ride:'Ride', show:'Show', walk:'Walk-through', play:'Play area', meet:'Meet & greet'};
 
 // Simplified, not-to-scale map positions (viewBox 600 x 540)
 const ENTRANCE = {x:300,y:505};
@@ -168,7 +200,7 @@ const LANDS = {
  "Main Street, U.S.A.":{x:300,y:430,c:"#b9852f"},
  "Adventureland":{x:185,y:345,c:"#2e8b57"},
  "New Orleans Square":{x:115,y:290,c:"#7a4aa8"},
- "Critter Country":{x:70,y:215,c:"#8a5a2b"},
+ "Bayou Country":{x:70,y:215,c:"#8a5a2b"},
  "Frontierland":{x:160,y:190,c:"#c0602a"},
  "Galaxy's Edge":{x:95,y:105,c:"#3b4a6b"},
  "Fantasyland":{x:300,y:195,c:"#2f5bd8"},
@@ -192,7 +224,7 @@ const ICONS = {
 function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
 
 const $ = id => document.getElementById(id);
-const state = {pixar:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
+const state = {pixar:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}};
 const BATCH = 6;
 const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
 Object.keys(ALIASES).forEach(k => idxByName[k] = idxByName[ALIASES[k]]);
@@ -213,6 +245,7 @@ function applyFilters(){
   let ids = RIDES.map((r,i)=>i).filter(i=>{
     const r=RIDES[i];
     if(state.pixar && !r[4]) return false;
+    if(state.rides && kindOf(r) !== 'ride') return false;
     if(state.top && scoreOf(i) < 4) return false;
     if(state.little && !r[5]) return false;
     if(state.fit && r[3] > state.ht) return false;
@@ -254,6 +287,7 @@ function card(i){
   d.className = 'card';
   const tags = [
     px ? '<span class="tag p">★ Pixar</span>' : '',
+    '<span class="tag">' + KIND_LABEL[kindOf(r)] + '</span>',
     '<span class="tag">' + age + '</span>',
     '<span class="tag ' + (fit ? 'ok' : 'no') + '">' + (h ? h + '" minimum' : 'No height minimum') + (fit ? '' : ' – too short') + '</span>'
   ].join('');
@@ -320,7 +354,7 @@ function toggle(id, key){
     applyFilters();
   });
 }
-toggle('fPixar','pixar'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
+toggle('fPixar','pixar'); toggle('fRides','rides'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
 $('ht').addEventListener('input', e => { const v=parseFloat(e.target.value); if(v>0){ state.ht=v; applyFilters(); } });
 
 // ---------- tabs ----------
@@ -409,7 +443,7 @@ function renderTimeline(){
       row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
       row.querySelector('.nm').textContent = r[0];
       row.querySelector('.st').textContent = starsText(scoreOf(it.i));
-      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · off the ride ~' + fmt(it.off);
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · done ~' + fmt(it.off) + (kindOf(r)==='show'||kindOf(r)==='meet' ? ' · check the app for show times' : '');
       const wi = row.querySelector('.wait'); wi.value = it.wait;
       wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
       const k = state.sel.indexOf(it.i);
@@ -481,9 +515,29 @@ $('loadCode').onclick = () => {
   $('codeMsg').textContent = loadCode($('codeIn').value) ? 'Plan loaded.' : 'That code did not work. Check that you pasted all of it.';
 };
 
+// Full link: this page's address plus #plan=<code>. Opening it loads that plan.
+function planLink(){ return location.href.split('#')[0] + '#plan=' + encodeURIComponent(makeCode()); }
+$('copyLink').onclick = async () => {
+  const link = planLink();
+  if(!/^https?:/.test(link)){ $('codeIn').value = makeCode(); $('codeMsg').textContent = 'A full link is not available in this view. Use Copy plan code instead.'; return; }
+  try{ await navigator.clipboard.writeText(link); $('codeMsg').textContent = 'Copied a link. Anyone who opens it gets this plan and your star scores.'; }
+  catch(e){ $('codeIn').value = link; $('codeIn').select(); $('codeMsg').textContent = 'Copy the link from the box (press and hold, then Copy).'; }
+};
+// Older links and codes keep working: DL1 and DL2 codes, old ride names, and old saved browser data.
+function applyHash(){
+  try{
+    if(!location.hash.startsWith('#plan=')) return;
+    const ok = loadCode(decodeURIComponent(location.hash.slice(6)));
+    // drop the code from the address bar so a reload does not overwrite later edits
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+    if(ok){ showTab('plan'); $('codeMsg').textContent = 'Plan loaded from the link.'; }
+  }catch(e){}
+}
+window.addEventListener('hashchange', applyHash);
+
 restore();
-try{ if(location.hash.startsWith('#plan=')) loadCode(decodeURIComponent(location.hash.slice(6))); }catch(e){}
 updateTab(); applyFilters();
+applyHash();
 </script>
 </body>
 </html>

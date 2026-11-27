@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disney California Adventure Planner</title>
+<style>
+  :root{--bg:#f6f4ef;--card:#fff;--ink:#1d2433;--mute:#6a7385;--line:#e4e0d6;--accent:#2f5bd8;--pixar:#e8542f;--ok:#1f8a4c;--no:#b3392e;--map:#eef3ea;--star:#f2a900;--k-ride:#2f5bd8;--k-walk:#1f8a4c;--k-show:#8a4fd0;--k-play:#d9741a;--k-meet:#d14a8a;--k-food:#b3392e;--k-rest:#5f6878;--kink:#fff;--lane:#f2a900}
+  @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1e222d;--ink:#eef0f5;--mute:#9aa3b5;--line:#2c3140;--accent:#7fa0ff;--pixar:#ff7a57;--ok:#4cc783;--no:#ff8478;--map:#1a2420;--star:#ffc233;--k-ride:#7fa0ff;--k-walk:#4cc783;--k-show:#b98cf0;--k-play:#ffa85c;--k-meet:#ff86bd;--k-food:#ff8478;--k-rest:#9aa3b5;--kink:#14171f;--lane:#ffc233}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px 8px}
+  h1{font-size:19px;margin:0 0 8px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:999px;font-size:14px;cursor:pointer}
+  .chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.px[aria-pressed=true]{background:var(--pixar);border-color:var(--pixar)}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tab{flex:1;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+  .tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  label.h{font-size:14px;color:var(--mute);display:flex;align-items:center;gap:6px}
+  input[type=number],input[type=time]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:15px}
+  input[type=number]{width:64px}
+  #count{font-size:13px;color:var(--mute);margin-top:6px}
+  main{max-width:640px;margin:0 auto;padding:12px 14px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;animation:in .25s ease-out}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .banner{height:56px;display:flex;align-items:center;justify-content:center}
+  .banner svg{width:40px;height:40px}
+  .vidwrap{aspect-ratio:16/9;background:#111;position:relative}
+  .vidwrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .poster{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;cursor:pointer;background:#222 center/cover no-repeat}
+  .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;padding-left:4px}
+  .body{padding:12px 14px 14px}
+  .name{font-size:17px;font-weight:650;margin:0}
+  .land{font-size:13px;color:var(--mute);margin-top:2px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{font-size:12.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+  .tag.p{background:var(--pixar);border-color:var(--pixar);color:#fff}
+  .tag.ok{color:var(--ok);border-color:var(--ok)}
+  .tag.no{color:var(--no);border-color:var(--no)}
+  .note{font-size:14px;color:var(--mute);margin:8px 0 0}
+  .stars{display:flex;align-items:center;gap:2px;margin-top:10px}
+  .stars button{border:0;background:none;font-size:28px;line-height:1;padding:2px 3px;cursor:pointer;color:var(--line)}
+  .stars button.on{color:var(--star)}
+  .stars .lbl{font-size:13px;color:var(--mute);margin-left:8px}
+  .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:10px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn.add[aria-pressed=true]{background:var(--ok);border-color:var(--ok);color:#fff}
+  .btn.yt{color:#c4302b;border-color:#c4302b}
+  #sentinel{height:60px;text-align:center;color:var(--mute);font-size:14px;padding-top:14px}
+  .foot{font-size:12.5px;color:var(--mute);text-align:center;margin-top:8px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+  .panel h2{font-size:16px;margin:0 0 8px}
+  .mapbox{background:var(--map);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .mapbox svg{display:block;width:100%;height:auto}
+  .stop{display:grid;grid-template-columns:30px 1fr auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+  .stop:first-of-type{border-top:0}
+  .num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .num.lunch{background:var(--mute)}
+  .when{font-weight:700}
+  .sub{font-size:13px;color:var(--mute)}
+  .parks{display:flex;gap:6px;margin:4px 0 8px}
+  .parks a{font-size:13px;font-weight:600;padding:3px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none}
+  .parks a[aria-current]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .searchbox{position:relative;margin:0 0 8px}
+  .searchbox input{width:100%;box-sizing:border-box;padding:10px 38px 10px 12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+  .searchbox button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mute);font-size:20px;line-height:1;padding:6px 10px;cursor:pointer}
+  .jump{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:13px}
+  .jump input{width:56px;padding:3px 6px;font-size:13px}
+  .jump button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:13px}
+  .mv{display:flex;flex-direction:column;gap:4px}
+  .mv button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:13px}
+  .wait{width:56px;padding:3px 6px;font-size:13px}
+  .empty{color:var(--mute);text-align:center;padding:24px 8px}
+  .st{color:var(--star)}
+  .stop{border-left:5px solid var(--kc,var(--line));padding-left:10px}
+  .num{background:var(--kc,var(--accent));color:var(--kink)}
+  .kt{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;color:var(--kink);background:var(--kc,var(--mute))}
+  .lane{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--lane);color:#1d2433}
+  .lane.single{background:transparent;border:1.5px solid var(--lane);color:var(--ink)}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  .fld{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px;min-width:0}
+  details.panel summary{font-weight:600;cursor:pointer}
+  .dur{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;border:1.5px solid var(--ink);color:var(--ink);white-space:nowrap}
+  .src.typ{background:var(--k-ride);color:var(--kink)}
+  .attr{font-size:13px;color:var(--mute)}
+  .attr a{color:inherit}
+  .src{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .src.live{background:#1f8a4c;color:#fff}
+  .src.est{background:transparent;border:1.5px dashed var(--mute);color:var(--mute)}
+  .src.you{background:transparent;border:1.5px solid var(--mute);color:var(--ink)}
+  .src.shut{background:var(--no);color:#fff}
+  .livebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+  .livebar .st2{font-size:13px;color:var(--mute);flex:1;min-width:180px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#1f8a4c;margin-right:5px}
+  .dot.off{background:var(--mute)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Disney California Adventure planner</h1>
+  <nav class="parks" aria-label="Choose park"><a href="index.html">Disneyland Park</a><a href="dca.html" aria-current="page">California Adventure</a></nav>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabRides" role="tab" aria-selected="true">Rides</button>
+    <button class="tab" id="tabPlan" role="tab" aria-selected="false">My plan (0)</button>
+  </div>
+  <div id="rideControls">
+    <div class="searchbox">
+      <input id="q" type="search" placeholder="Search rides, shows, lands…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search rides, shows and lands">
+      <button type="button" id="qClear" aria-label="Clear search" hidden>×</button>
+    </div>
+    <div class="row">
+      <button class="chip px" id="fPixar" aria-pressed="false">★ Pixar</button>
+      <button class="chip" id="fLane" aria-pressed="false">⚡ Multi Pass</button>
+      <button class="chip" id="fRides" aria-pressed="false">Rides only</button>
+      <button class="chip" id="fTop" aria-pressed="false">Top picks (4+ stars)</button>
+      <button class="chip" id="fSort" aria-pressed="false">Best score first</button>
+      <button class="chip" id="fFit" aria-pressed="false">Can ride</button>
+      <button class="chip" id="fLittle" aria-pressed="false">Gentle only</button>
+      <label class="h">Height <input id="ht" type="number" min="30" max="70" value="45" inputmode="numeric"> in</label>
+    </div>
+    <div id="count"></div>
+  </div>
+</header>
+
+<main>
+  <section id="viewRides">
+    <div id="list"></div>
+    <div id="sentinel">Loading more…</div>
+    <div class="foot">Heights and ride status change. Confirm in the Disneyland app and at the ride entrance. Waits and typical-wait statistics: Powered by <a href="https://queue-times.com/" target="_blank" rel="noopener">Queue-Times.com</a>. Show times: <a href="https://themeparks.wiki/" target="_blank" rel="noopener">ThemeParks.wiki</a>. Videos are made by other people and are not affiliated with this page. ⚡ marks rides on Disneyland's Lightning Lane Multi Pass list as of Nov 26, 2026. That list changes, so check the app.</div>
+  </section>
+
+  <section id="viewPlan" hidden>
+    <div class="panel">
+      <div class="row">
+        <label class="h">Arrive at the gate <input id="start" type="time" value="08:00"></label>
+        <label class="h"><input id="lunch" type="checkbox" checked> 45 min lunch around 11:30</label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="addTop">Add all 4+ star rides</button>
+        <button class="btn" id="auto">Auto-order route</button>
+        <button class="btn" id="clear">Clear plan</button>
+        <button class="btn" id="copyCode">Copy plan code</button>
+        <button class="btn" id="copyLink">Copy plan link</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="codeIn" type="text" placeholder="Paste a plan code to load it" style="flex:1;min-width:0;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px">
+        <button class="btn" id="loadCode">Load</button>
+      </div>
+      <p class="sub" id="codeMsg" style="margin:6px 0 0"></p>
+      <p class="sub" style="margin:10px 0 0">Waits are rough guesses for a typical day. Edit the minutes on any stop and the times update. Walk times come from this simplified map, not exact distances.</p>
+    </div>
+    <details class="panel" id="addStop">
+      <summary>Add a food, rest or custom stop</summary>
+      <div class="row" style="margin-top:10px">
+        <select id="csKind" class="fld"><option value="food">Food or snack</option><option value="rest">Rest or other</option></select>
+        <input id="csName" class="fld" type="text" maxlength="60" placeholder="Name, for example Churros" style="flex:1">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <select id="csLand" class="fld"></select>
+        <label class="h">Minutes <input id="csMin" type="number" min="5" max="240" value="30" inputmode="numeric"></label>
+        <button class="btn" id="csAdd" type="button">Add to plan</button>
+      </div>
+    </details>
+    <div class="livebar" id="livebar">
+      <span class="src live">LIVE</span>
+      <span class="src typ">TYPICAL</span>
+      <span class="src est">ESTIMATE</span>
+      <button class="btn" id="refresh" type="button">↻ Refresh waits</button>
+      <label class="h"><input id="useLive" type="checkbox" checked> Use live waits</label>
+      <label class="h"><input id="autoRef" type="checkbox" checked> Auto-refresh every 5 min</label>
+      <span class="st2" id="liveMsg" role="status">Live waits not loaded yet.</span>
+    </div>
+    <p class="attr" style="margin:0 0 10px">Powered by <a href="https://queue-times.com/" target="_blank" rel="noopener">Queue-Times.com</a>. TYPICAL is the average wait for the hour you would arrive, from their statistics (2025 statistics; late-evening values are capped at the 9 PM average). It is a past average, not a forecast for your date.</p>
+    <details class="panel" id="addSched">
+      <summary>Add a show, parade or music set from today's schedule</summary>
+      <div class="row" style="margin-top:10px">
+        <select id="schSel" class="fld" style="flex:1"></select>
+        <button class="btn" id="schAdd" type="button">Add to plan</button>
+      </div>
+      <p class="sub" id="schNote" style="margin:6px 0 0"></p>
+    </details>
+    <div class="legend" aria-label="Color key">
+      <span class="kt" style="--kc:var(--k-ride)">Ride</span>
+      <span class="kt" style="--kc:var(--k-walk)">Walk-through</span>
+      <span class="kt" style="--kc:var(--k-show)">Show</span>
+      <span class="kt" style="--kc:var(--k-play)">Play area</span>
+      <span class="kt" style="--kc:var(--k-meet)">Meet &amp; greet</span>
+      <span class="kt" style="--kc:var(--k-food)">Food</span>
+      <span class="kt" style="--kc:var(--k-rest)">Rest / other</span>
+      <span class="lane">⚡ Multi Pass</span>
+      <span class="lane single">⚡ Single Pass only</span>
+    </div>
+    <div class="mapbox" id="map"></div>
+    <div class="panel" id="timeline"></div>
+    <div class="foot">Arrive times are when you should reach the ride entrance.</div>
+  </section>
+</main>
+
+<script>
+// 12 kind (ride, show, walk, play, meet; blank = ride)
+// 0 name, 1 land, 2 age, 3 minHeight(in), 4 pixar, 5 gentle, 6 note, 7 icon, 8 default wait (min), 9 ride length (min), 10 YouTube id, 11 video note
+const RIDES = [
+ ["Radiator Springs Racers","Cars Land","Ages 6+",40,true,false,"Cars-themed dark ride that ends in a high-speed race. Single Pass only, so it is not on Multi Pass.","car",80,5,"","","ride"],
+ ["Luigi's Rollickin' Roadsters","Cars Land","Little kids and up",32,true,true,"Cars bounce and sway to music. The holiday version is Luigi's Joy to the Whirl.","car",20,3,"","","ride"],
+ ["Mater's Junkyard Jamboree","Cars Land","Little kids and up",32,true,true,"Tractors whip around on a short tether. The holiday version is Mater's Jingle Jamboree.","spinner",15,3,"","","ride"],
+ ["Meet the Residents of Radiator Springs in Cars Land","Cars Land","All ages",0,true,true,"Characters walk around Cars Land. Check the app for times.","play",0,10,"","","meet"],
+ ["Incredicoaster","Pixar Pier","Ages 8+",48,true,false,"Fast coaster with a launch and loops. The tallest height rule in the park.","coaster",40,3,"","","ride"],
+ ["Toy Story Midway Mania!","Pixar Pier","Little kids and up",0,true,true,"Shoot targets in a 4D carnival game. A good fit for 6 year olds.","sim",50,6,"","","ride"],
+ ["Inside Out Emotional Whirlwind","Pixar Pier","Little kids and up",0,true,true,"Spinning ride with the Inside Out emotions.","spinner",18,3,"","","ride"],
+ ["Pixar Pal-A-Round - Swinging","Pixar Pier","Ages 6+",0,true,false,"Big Ferris wheel with swinging gondolas. There is also a non-swinging line.","spinner",30,8,"","","ride"],
+ ["Jessie's Critter Carousel","Pixar Pier","All ages",0,true,true,"Carousel with Toy Story critters.","carousel",6,3,"","","ride"],
+ ["Jumpin' Jellyfish","Pixar Pier","Little kids and up",40,true,true,"Gentle parasail-style drop.","spinner",10,2,"","","ride"],
+ ["Games of Pixar Pier","Pixar Pier","All ages",0,true,true,"Midway-style games. Paid, and they take as long as you like.","play",0,15,"","","play"],
+ ["Operation: Playtime! - featuring the Green Army Patrol","Pixar Pier","All ages",0,true,true,"Live show with the Green Army Men. Check the app for times.","show",10,15,"","","show"],
+ ["Goofy's Sky School","Paradise Gardens Park","Ages 6+",42,false,false,"Small coaster with sharp turns.","coaster",35,2,"","","ride"],
+ ["Silly Symphony Swings","Paradise Gardens Park","Little kids and up",40,false,true,"Swing ride. Tandem swings need 40 inches; a single swing needs 48.","spinner",12,3,"","","ride"],
+ ["Golden Zephyr","Paradise Gardens Park","All ages",0,false,true,"Rocket-shaped swings.","spinner",10,3,"","","ride"],
+ ["The Little Mermaid - Ariel's Undersea Adventure","Paradise Gardens Park","All ages",0,false,true,"Gentle dark ride through the movie.","car",22,6,"","","ride"],
+ ["World of Color","Paradise Gardens Park","All ages",0,false,true,"Evening water, light and projection show. Seasonal editions change the name. Check the app for times and viewing options.","show",20,22,"","","show"],
+ ["Soarin' Across America","Grizzly Peak","Little kids and up",40,false,true,"Flying-theater ride over American landscapes. New in 2026, so there is no wait history yet.","sim",45,6,"","","ride"],
+ ["Grizzly River Run","Grizzly Peak","Ages 6+",42,false,false,"River rapids raft ride. You will get wet.","boat",30,5,"","","ride"],
+ ["Redwood Creek Challenge Trail","Grizzly Peak","Ages 6+",42,false,true,"Climbing and zip line trail. The rock wall and zip line need 42 inches.","play",0,30,"","","play"],
+ ["Monsters, Inc. Mike & Sulley to the Rescue!","Hollywood Land","Little kids and up",0,true,true,"Dark ride through Monstropolis. A few dark scenes.","car",30,6,"","","ride"],
+ ["Mickey's PhilharMagic","Hollywood Land","All ages",0,false,true,"3D movie show with Disney songs. A cool seat in the shade.","show",10,12,"","","show"],
+ ["Turtle Talk with Crush","Hollywood Land","All ages",0,true,true,"Crush answers kids' questions live on screen.","show",10,15,"","","show"],
+ ["Animation Academy","Hollywood Land","Little kids and up",0,false,true,"Learn to draw a character. Classes are first come, first served.","play",0,30,"","","play"],
+ ["Sorcerer's Workshop","Hollywood Land","All ages",0,false,true,"Interactive Disney exhibit.","play",0,15,"","","play"],
+ ["Disney Jr. Mickey Mouse Clubhouse Live!","Hollywood Land","Toddlers and up",0,false,true,"Live stage show for younger kids. Check the app for times.","show",10,20,"","","show"],
+ ["Guardians of the Galaxy - Mission: BREAKOUT!","Avengers Campus","Ages 8+",40,false,false,"Drop ride in the dark with loud effects.","sim",70,3,"","","ride"],
+ ["WEB SLINGERS: A Spider-Man Adventure","Avengers Campus","Little kids and up",0,false,true,"Shoot webs at targets. No height rule.","sim",40,5,"","","ride"],
+ ["Warriors of Wakanda: The Disciplines of the Dora Milaje","Avengers Campus","All ages",0,false,true,"Live performance with the Dora Milaje. Check the app for times.","show",10,15,"","","show"],
+ ["Avengers Headquarters","Avengers Campus","All ages",0,false,true,"Meet Marvel heroes. Check the app for times.","play",0,10,"","","meet"],
+ ["The Bakery Tour","Pacific Wharf","All ages",0,false,true,"Short bread-making tour with a sample.","play",0,15,"","","walk"],
+ ["Five & Dime","Buena Vista Street","All ages",0,false,true,"Musical street show on Buena Vista Street. Check the app for times.","show",0,15,"","","show"],
+ ["Meet Disney Pals on Buena Vista Street","Buena Vista Street","All ages",0,false,true,"Meet characters near the entrance. Check the app for times.","play",0,10,"","","meet"]
+];
+// old names from earlier versions still load from saved plans and codes
+const ALIASES = {"World of Color - Season of Light":"World of Color","World of Color – ONE":"World of Color","Luigi's Joy to the Whirl":"Luigi's Rollickin' Roadsters","Mater's Jingle Jamboree":"Mater's Junkyard Jamboree","Pixar Pal-A-Round – Swinging":"Pixar Pal-A-Round - Swinging"};
+const kindOf = r => r[12] || 'ride';
+const KIND_LABEL = {ride:'Ride', show:'Show', walk:'Walk-through', play:'Play area', meet:'Meet & greet', food:'Food', rest:'Rest / other'};
+// Lightning Lane, from Disneyland's Lightning Lane passes page (checked Nov 27, 2026).
+// "multi" = Multi Pass attraction. "single" = Single Pass only (not on Multi Pass). The list changes, so check the app.
+const LANE = {"Goofy's Sky School":"multi","Grizzly River Run":"multi","Guardians of the Galaxy - Mission: BREAKOUT!":"multi","Incredicoaster":"multi","The Little Mermaid - Ariel's Undersea Adventure":"multi","Monsters, Inc. Mike & Sulley to the Rescue!":"multi","Soarin' Across America":"multi","Toy Story Midway Mania!":"multi","WEB SLINGERS: A Spider-Man Adventure":"multi","Radiator Springs Racers":"single"};
+const laneOf = r => LANE[r[0]] || '';
+
+// Simplified, not-to-scale map positions (viewBox 600 x 540)
+const ENTRANCE = {x:300,y:505};
+const LANDS = {
+ "Buena Vista Street":{x:300,y:430,c:"#b9852f"},
+ "Hollywood Land":{x:455,y:340,c:"#c0602a"},
+ "Avengers Campus":{x:480,y:190,c:"#3b4a6b"},
+ "Grizzly Peak":{x:300,y:150,c:"#2e8b57"},
+ "Cars Land":{x:110,y:160,c:"#c4302b"},
+ "Pacific Wharf":{x:300,y:290,c:"#8a5a2b"},
+ "Paradise Gardens Park":{x:115,y:290,c:"#1c8fa8"},
+ "Pixar Pier":{x:125,y:415,c:"#2f5bd8"}
+};
+const HUB = {x:300,y:365};
+
+const ICONS = {
+ boat:'<path d="M8 40h48l-8 12H16z"/><path d="M22 40V24h20v16"/><path d="M4 58q8-5 14 0t14 0 14 0 14 0"/>',
+ coaster:'<path d="M4 54Q14 8 28 40T52 18l8 12"/><rect x="24" y="30" width="14" height="9" rx="3"/>',
+ train:'<rect x="8" y="26" width="32" height="20" rx="3"/><path d="M40 34h14v12H40z"/><path d="M14 26v-10h8v10"/><circle cx="18" cy="52" r="5"/><circle cx="34" cy="52" r="5"/><circle cx="50" cy="52" r="5"/>',
+ carousel:'<path d="M32 8v48"/><path d="M8 26 32 10l24 16z"/><path d="M12 56h40"/><circle cx="20" cy="42" r="6"/><circle cx="44" cy="42" r="6"/>',
+ spinner:'<circle cx="32" cy="32" r="12"/><circle cx="32" cy="10" r="6"/><circle cx="10" cy="40" r="6"/><circle cx="54" cy="40" r="6"/>',
+ car:'<path d="M6 40l6-14h40l6 14z"/><rect x="6" y="40" width="52" height="10" rx="3"/><circle cx="18" cy="54" r="5"/><circle cx="46" cy="54" r="5"/>',
+ sim:'<rect x="8" y="14" width="48" height="28" rx="4"/><path d="M20 42v10h24V42"/><path d="M32 22l3 6h7l-5 4 2 7-7-4-7 4 2-7-5-4h7z"/>',
+ play:'<circle cx="20" cy="40" r="10"/><circle cx="42" cy="44" r="8"/><circle cx="32" cy="22" r="9"/><circle cx="48" cy="24" r="5"/>',
+ show:'<path d="M6 10h52"/><path d="M8 10c0 22 8 34 14 40M56 10c0 22-8 34-14 40"/><path d="M22 50h20"/><path d="M32 18l2.5 5 5.5.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9 5.5-.8z"/>',
+ mono:'<rect x="6" y="22" width="52" height="16" rx="8"/><path d="M16 26v8M26 26v8M36 26v8M46 26v8"/><path d="M2 46h60M10 46v12M54 46v12"/>'
+};
+function icon(t){return '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[t]||ICONS.car)+'</svg>';}
+
+const $ = id => document.getElementById(id);
+const state = {q:'', pixar:false, lane:false, rides:false, top:false, sort:false, fit:false, little:false, ht:45, shown:0, filtered:[], sel:[], waits:{}, scores:{}, showPick:{}};
+const BATCH = 6;
+const BASE = RIDES.length;   // built-in listings; custom stops are added after these
+const idxByName = {}; RIDES.forEach((r,i)=>idxByName[r[0]]=i);
+Object.keys(ALIASES).forEach(k => idxByName[k] = idxByName[ALIASES[k]]);
+
+// custom stops (food, rest, other) live after the built-in listings and are saved with the plan
+function ensureCustom(name, kind, land, mins){
+  name = String(name||'').trim().slice(0,60); if(!name) return undefined;
+  kind = ['rest','show'].includes(kind) ? kind : 'food';
+  mins = Math.max(1, Math.min(240, parseInt(mins,10) || 30));
+  if(!(land in LANDS)) land = 'Buena Vista Street';
+  if(idxByName[name] !== undefined && idxByName[name] < BASE) name += ' (my stop)';
+  let i = idxByName[name];
+  if(i !== undefined){ RIDES[i][1]=land; RIDES[i][9]=mins; RIDES[i][12]=kind; return i; }
+  RIDES.push([name, land, 'All ages', 0, false, true, kind==='food' ? 'Your food stop.' : kind==='show' ? 'Show, parade or music from today\'s schedule.' : 'Your stop.', 'play', 0, mins, '', '', kind]);
+  i = RIDES.length-1; idxByName[name] = i; return i;
+}
+const customDefs = () => state.sel.filter(i=>i>=BASE).map(i=>[RIDES[i][0], kindOf(RIDES[i]), RIDES[i][1], RIDES[i][9]]);
+
+const scoreOf = i => state.scores[RIDES[i][0]] || 0;
+const LABELS = ['Not rated','Skip','Maybe','Good','Really want','Must do'];
+const starsText = n => n ? '★'.repeat(n) + '☆'.repeat(5-n) : '';
+
+function save(){ try{ localStorage.setItem('dca-plan1', JSON.stringify({c:customDefs(), sel:state.sel.map(i=>RIDES[i][0]), waits:state.waits, scores:state.scores, h:state.showPick, start:$('start').value, lunch:$('lunch').checked})); }catch(e){} }
+function restore(){ try{
+  let raw = localStorage.getItem('dca-plan1');
+  const d = JSON.parse(raw||'null'); if(!d) return;
+  (d.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
+  state.sel=(d.sel||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
+  state.waits=d.waits||{}; state.scores=d.scores||{}; state.showPick=d.h||{};
+  if(d.start) $('start').value=d.start; if(typeof d.lunch==='boolean') $('lunch').checked=d.lunch; }catch(e){} }
+
+function applyFilters(){
+  let ids = RIDES.slice(0,BASE).map((r,i)=>i).filter(i=>{
+    const r=RIDES[i];
+    if(state.qw && state.qw.length){ const hay = norm([r[0], r[1], r[2], r[6], KIND_LABEL[kindOf(r)], r[4] ? 'pixar' : '', laneOf(r) ? 'multi pass lightning lane' : ''].join(' ')); if(!state.qw.every(w => hay.includes(w))) return false; }
+    if(state.pixar && !r[4]) return false;
+    if(state.rides && kindOf(r) !== 'ride') return false;
+    if(state.lane && laneOf(r) !== 'multi') return false;
+    if(state.top && scoreOf(i) < 4) return false;
+    if(state.little && !r[5]) return false;
+    if(state.fit && r[3] > state.ht) return false;
+    return true;
+  });
+  if(state.sort) ids = ids.map((i,k)=>[i,k]).sort((a,b)=> scoreOf(b[0])-scoreOf(a[0]) || a[1]-b[1]).map(x=>x[0]);
+  state.filtered = ids;
+  state.shown = 0;
+  $('list').innerHTML = '';
+  $('count').textContent = ids.length + ' of ' + BASE + ' rides' + (state.qw && state.qw.length ? ' matching "' + state.q.trim() + '"' : '');
+  loadMore();
+}
+
+function videoBlock(r){
+  const id = r[10];
+  if(!id) return null;
+  const wrap = document.createElement('div'); wrap.className = 'vidwrap';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'poster';
+  b.style.backgroundImage = 'url(https://i.ytimg.com/vi/' + id + '/hqdefault.jpg)';
+  b.setAttribute('aria-label', 'Play video: ' + r[0]);
+  b.innerHTML = '<span class="play">▶</span>';
+  b.addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.allowFullscreen = true; f.title = 'Ride video: ' + r[0];
+    wrap.replaceChild(f, b);
+  });
+  wrap.appendChild(b);
+  return wrap;
+}
+
+function card(i){
+  const r = RIDES[i];
+  const [name,land,age,h,px,gentle,note,type] = r;
+  const fit = h <= state.ht;
+  const col = (LANDS[land]||{}).c || '#6a7385';
+  const d = document.createElement('div');
+  d.className = 'card';
+  const tags = [
+    px ? '<span class="tag p">★ Pixar</span>' : '',
+    '<span class="kt" style="--kc:var(--k-'+kindOf(r)+')">' + KIND_LABEL[kindOf(r)] + '</span>',
+    laneOf(r)==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (laneOf(r)==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''),
+    '<span class="tag">⏱ ~' + r[9] + ' min</span>',
+    '<span class="tag">' + age + '</span>',
+    '<span class="tag ' + (fit ? 'ok' : 'no') + '">' + (h ? h + '" minimum' : 'No height minimum') + (fit ? '' : ' – too short') + '</span>'
+  ].join('');
+  d.innerHTML = '<div class="banner" style="background:linear-gradient(135deg,'+col+','+col+'bb)">'+icon(type)+'</div>'+
+    '<div class="body"><h2 class="name"></h2><div class="land"></div><div class="tags">'+tags+'</div><p class="note"></p>'+
+    '<div class="wchip sub" style="margin:4px 0"></div>'+
+    '<div class="stars" role="group"></div>'+
+    '<p class="note vnote" hidden></p>'+
+    '<div class="acts"><button class="btn add" type="button"></button><a class="btn yt" target="_blank" rel="noopener"></a></div></div>';
+  d.dataset.i = i; d.querySelector('.wchip').innerHTML = waitChip(i);
+  d.querySelector('.name').textContent = name;
+  d.querySelector('.land').textContent = land;
+  d.querySelector('.note').textContent = note;
+  const vb = videoBlock(r);
+  if(vb) d.insertBefore(vb, d.querySelector('.body'));
+  if(r[11]){ const vn = d.querySelector('.vnote'); vn.textContent = r[11]; vn.hidden = false; }
+
+  // preference score
+  const stars = d.querySelector('.stars');
+  stars.setAttribute('aria-label', 'Your score for ' + name);
+  const btns = [];
+  for(let s=1; s<=5; s++){
+    const b = document.createElement('button'); b.type='button'; b.textContent='★'; b.setAttribute('aria-label', s+' of 5: '+LABELS[s]);
+    b.addEventListener('click', () => {
+      if(scoreOf(i) === s) delete state.scores[name]; else state.scores[name] = s;
+      paintStars(); save();
+      if(state.sort || state.top) { /* list order changes the next time a filter is toggled */ }
+    });
+    btns.push(b); stars.appendChild(b);
+  }
+  const lbl = document.createElement('span'); lbl.className='lbl'; stars.appendChild(lbl);
+  const paintStars = () => { const sc = scoreOf(i); btns.forEach((b,k)=>b.classList.toggle('on', k < sc)); lbl.textContent = LABELS[sc]; };
+  paintStars();
+
+  const yt = d.querySelector('.yt');
+  if(r[10]){ yt.href = 'https://www.youtube.com/watch?v=' + r[10]; yt.textContent = '▶ Open on YouTube'; }
+  else { yt.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' Disney California Adventure'); yt.textContent = '▶ Search YouTube'; }
+
+  const add = d.querySelector('.add');
+  const paint = () => { const on = state.sel.includes(i); add.setAttribute('aria-pressed', on); add.textContent = on ? '✓ In my plan' : '+ Add to plan'; };
+  paint();
+  add.addEventListener('click', () => {
+    const k = state.sel.indexOf(i);
+    if(k>=0) state.sel.splice(k,1); else state.sel.push(i);
+    paint(); updateTab(); save();
+  });
+  return d;
+}
+
+function loadMore(){
+  const next = state.filtered.slice(state.shown, state.shown + BATCH);
+  next.forEach(i => $('list').appendChild(card(i)));
+  state.shown += next.length;
+  const done = state.shown >= state.filtered.length;
+  $('sentinel').textContent = state.filtered.length === 0 ? 'No matches. Try fewer words or clear a filter.' : (done ? "That's every ride." : 'Loading more…');
+}
+const io = new IntersectionObserver(es => {
+  if(es[0].isIntersecting && state.shown < state.filtered.length) loadMore();
+}, {rootMargin:'300px'});
+io.observe($('sentinel'));
+
+function toggle(id, key){
+  $(id).addEventListener('click', () => {
+    state[key] = !state[key];
+    $(id).setAttribute('aria-pressed', state[key]);
+    applyFilters();
+  });
+}
+toggle('fPixar','pixar'); toggle('fLane','lane'); toggle('fRides','rides'); toggle('fTop','top'); toggle('fSort','sort'); toggle('fFit','fit'); toggle('fLittle','little');
+let qTimer = null;
+$('q').addEventListener('input', () => { const v = $('q').value; $('qClear').hidden = !v; clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = v; state.qw = norm(v).split(' ').filter(Boolean); applyFilters(); }, 120); });
+$('q').addEventListener('keydown', e => { if(e.key==='Escape'){ $('qClear').click(); } });
+$('qClear').onclick = () => { $('q').value = ''; $('qClear').hidden = true; clearTimeout(qTimer); state.q = ''; state.qw = []; applyFilters(); $('q').focus(); };
+$('ht').addEventListener('input', e => { const v=parseFloat(e.target.value); if(v>0){ state.ht=v; applyFilters(); } });
+
+// ---------- tabs ----------
+function updateTab(){ $('tabPlan').textContent = 'My plan (' + state.sel.length + ')'; }
+function showTab(which){
+  const plan = which==='plan';
+  $('tabRides').setAttribute('aria-selected', !plan);
+  $('tabPlan').setAttribute('aria-selected', plan);
+  $('viewRides').hidden = plan; $('viewPlan').hidden = !plan; $('rideControls').hidden = plan;
+  if(plan) renderPlan(); else applyFilters();
+  window.scrollTo(0,0);
+}
+$('tabRides').onclick = () => showTab('rides');
+$('tabPlan').onclick = () => showTab('plan');
+
+// ---------- plan ----------
+function pos(i){
+  const r = RIDES[i], L = LANDS[r[1]] || HUB;
+  const same = RIDES.map((x,j)=>j).filter(j=>RIDES[j][1]===r[1]);
+  const k = same.indexOf(i);
+  return {x: L.x + ((k%3)-1)*20, y: L.y + (((Math.floor(k/3))%4)-1.5)*16};
+}
+// ---------- waits: your edit > live > estimate ----------
+// ESTIMATE = the typical wait written into this page (a rough guess, not a forecast for your date).
+// LIVE = the posted wait fetched from the web, newer than 30 minutes.
+const LIVE_MAX_AGE = 30*60*1000;
+const SYN = [['joy to the whirl','rollickin roadsters'],['jingle jamboree','junkyard jamboree']];   // park-specific renames between listings and live feeds
+const norm = n => { let x = String(n||'').toLowerCase().replace(/[\u2122\u00ae]/g,'').replace(/&/g,' and ').replace(/\bholiday\b/g,'').replace(/[^a-z0-9]+/g,' ').trim(); SYN.forEach(([a,b]) => { x = x.split(a).join(b); }); return x; };
+state.live = {};            // normalized name -> {wait, open, at}
+state.liveOn = true; state.liveAt = null; state.liveErr = ''; state.sched = {}; state.schedAt = null; state.schedErr = '';
+function liveFor(i){
+  if(!state.liveOn) return null;
+  const L = state.live[norm(RIDES[i][0])] || state.live[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===RIDES[i][0])||'')];
+  if(!L || !(Date.now() - L.at <= LIVE_MAX_AGE)) return null;
+  return L;
+}
+// Typical wait by hour of day (park time), hours 8 to 23, from Queue-Times.com statistics.
+const HIST = {"Radiator Springs Racers":[90,75,77,80,80,80,79,81,82,81,79,77,72,60,60,60],"Guardians of the Galaxy - Mission: BREAKOUT!":[42,53,59,66,69,71,77,80,84,87,86,87,85,82,56,65],"WEB SLINGERS: A Spider-Man Adventure":[16,31,37,40,41,42,41,44,45,44,40,37,31,20,8,7],"Grizzly River Run":[5,5,9,19,29,36,38,39,36,28,21,13,9,8,8,8],"Incredicoaster":[13,22,27,29,33,35,39,41,41,43,45,45,40,31,5,5],"Toy Story Midway Mania!":[16,35,40,44,47,49,52,53,54,53,52,47,40,26,12,7],"The Little Mermaid - Ariel's Undersea Adventure":[5,6,11,18,22,24,24,24,24,21,18,14,9,6,5,5],"Monsters, Inc. Mike & Sulley to the Rescue!":[6,15,30,38,39,41,42,44,44,43,40,35,28,18,9,9],"Goofy's Sky School":[6,18,31,38,42,44,47,49,50,49,45,40,36,24,20,20],"Golden Zephyr":[5,5,6,8,10,11,11,11,11,11,10,10,10,10,10,10],"Silly Symphony Swings":[5,6,7,9,10,11,12,12,13,12,11,11,10,10,10,10],"Inside Out Emotional Whirlwind":[5,6,12,16,18,19,20,20,21,21,20,18,15,9,6,7],"Jessie's Critter Carousel":[5,5,5,5,5,6,6,6,6,7,7,6,6,6,5,5],"Jumpin' Jellyfish":[5,7,9,9,10,11,11,11,11,11,10,12,12,10,7,7],"Pixar Pal-A-Round - Swinging":[5,9,21,27,30,34,37,37,38,38,38,37,22,25,25,25]};
+const HIST_BY_IDX = {}; RIDES.slice(0,BASE).forEach((r,i)=>{ if(HIST[r[0]]) HIST_BY_IDX[i] = HIST[r[0]]; });
+function histAt(i, min){
+  const H = HIST_BY_IDX[i]; if(!H) return null;
+  const x = Math.max(8, Math.min(23, min/60)), lo = Math.floor(x), hi = Math.min(23, lo+1);
+  return Math.round(H[lo-8] + (H[hi-8]-H[lo-8])*(x-lo));
+}
+const histPeak = i => { const H = HIST_BY_IDX[i]; if(!H) return null; let k=0; H.forEach((v,j)=>{ if(v>H[k]) k=j; }); return {v:H[k], hour:k+8, lo:Math.min(...H)}; };
+function parkNowMin(){ const p = new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date()); const g = t => +(p.find(x=>x.type===t)||{value:0}).value; return (g('hour')%24)*60 + g('minute'); }
+function waitInfo(i, at){
+  const r = RIDES[i];
+  if(i >= BASE) return {v:0, src:'none'};
+  if(state.waits[r[0]] !== undefined) return {v:state.waits[r[0]], src:'you'};
+  const L = liveFor(i);
+  const hv = at == null ? null : histAt(i, at);
+  if(L && L.open === false) return {v:hv != null ? hv : r[8], src:'shut'};
+  // a live wait describes right now, so for a stop more than an hour from now the typical wait for that hour is the better guide
+  const nearNow = at == null || Math.abs(at - parkNowMin()) <= 60;
+  if(L && L.wait != null && (nearNow || hv == null)) return {v:L.wait, src:'live', at:L.at};
+  if(hv != null) return {v:hv, src:'typ', at:at};
+  return {v:r[8], src:'est'};
+}
+const waitOf = i => waitInfo(i).v;
+const SRC_LABEL = {live:'LIVE', typ:'TYPICAL', est:'ESTIMATE', you:'YOUR EDIT', shut:'CLOSED NOW'};
+const ageText = at => { const m=Math.round((Date.now()-at)/60000); return m<1?'just now':m+' min ago'; };
+function srcBadge(inf){
+  if(inf.src==='none') return '';
+  const t = SRC_LABEL[inf.src] + (inf.src==='live' ? ', ' + ageText(inf.at) : inf.src==='typ' ? ' AT ' + short(Math.floor(inf.at/60)*60).replace(/:00/,'').toUpperCase() : '');
+  return '<span class="src '+(inf.src==='shut'?'shut':inf.src)+'" title="'+(inf.src==='typ'?'Average wait for this hour of day from past years (Queue-Times.com). Not a forecast for your date.':inf.src==='est'?'Typical wait written into this page, not a prediction for your date':inf.src==='shut'?'Reported closed right now. Showing the typical or estimated wait.':inf.src==='live'?'Posted wait, updated '+ageText(inf.at):'You typed this wait')+'">'+t+'</span>';
+}
+
+const DUR_WORD = {ride:'Ride time', show:'Show length', walk:'Visit time', play:'Play time', meet:'Visit time', food:'Eating time', rest:'Break'};
+const durChip = i => '<span class="dur" title="' + DUR_WORD[kindOf(RIDES[i])] + ' (approximate, not including the wait)">⏱ ' + RIDES[i][9] + ' min</span>';
+function schedFor(i){
+  const r = RIDES[i];
+  const c = [r[0]].concat(Object.keys(ALIASES).filter(k=>ALIASES[k]===r[0])).map(n => state.sched[norm(n)]).filter(Boolean);
+  return c.find(x => x.times.length || x.wins.length) || c[0] || null;
+}
+const showTimes = i => { const S = schedFor(i); return kindOf(RIDES[i])==='show' && S && S.times.length ? S.times : null; };
+const short = m => fmt(m).replace(':00 ',' ').replace(' AM','a').replace(' PM','p');
+function pickTime(i, arrive){
+  // returns {start, late, auto} using your pick, else the next showing at least 10 min after you arrive
+  const T = showTimes(i); if(!T) return null;
+  const pk = state.showPick[RIDES[i][0]];
+  if(pk){ const m = hm('T'+pk); if(m && T.some(x=>x.hhmm===pk)) return {start:m.min, late:m.min < arrive, auto:false}; }
+  const nx = T.find(x => x.min >= arrive + 10);
+  return nx ? {start:nx.min, late:false, auto:true} : {start:null, late:false, auto:true, none:true};
+}
+const SCHED_BADGE = '<span class="src live" title="Posted performance times for today, from the ThemeParks.wiki feed">TODAY\'S SCHEDULE</span>';
+
+function ingestQT(j){
+  const out = {}; const all = [];
+  (j.lands||[]).forEach(l => (l.rides||[]).forEach(r => all.push(r))); (j.rides||[]).forEach(r => all.push(r));
+  all.forEach(r => { if(/single rider/i.test(r.name)) return; out[norm(r.name)] = {wait: r.wait_time, open: r.is_open!==false, at: Date.parse(r.last_updated) || Date.now()}; });
+  return out;
+}
+// Park-local date (Pacific). Showtimes in the feed carry a Pacific offset, so the HH:MM in the text is already park time.
+const parkToday = () => new Intl.DateTimeFormat('en-CA', {timeZone:'America/Los_Angeles'}).format(new Date());
+const hm = t => { const m = /T(\d\d):(\d\d)/.exec(t||''); return m ? {hhmm:m[1]+':'+m[2], min:(+m[1])*60+(+m[2])} : null; };
+function ingestTW(j){
+  const out = {}, today = parkToday();
+  (j.liveData||[]).forEach(e => { if(e.entityType!=='ATTRACTION' && e.entityType!=='SHOW') return;
+    const w = e.queue && e.queue.STANDBY ? e.queue.STANDBY.waitTime : null;
+    const open = e.status ? e.status==='OPERATING' : true;
+    const times = [], wins = [];
+    (e.showtimes||[]).forEach(st => {
+      if(!st.startTime || st.startTime.slice(0,10) !== today) return;
+      const a = hm(st.startTime), b = hm(st.endTime);
+      if(!a) return;
+      if(st.type === 'Operating') wins.push({a, b}); else times.push(a);
+    });
+    times.sort((x,y)=>x.min-y.min);
+    out[norm(e.name)] = {name:e.name, wait: w, open, at: Date.parse(e.lastUpdated) || Date.now(), times, wins}; });
+  return out;
+}
+const SOURCES = [
+  {name:'Queue-Times', url:'https://queue-times.com/parks/17/queue_times.json', f:ingestQT},
+  {name:'ThemeParks.wiki', url:'https://api.themeparks.wiki/v1/entity/832fcd51-ea19-4e77-85c7-75d5843b127c/live', f:ingestTW}
+];
+let liveBusy = false;
+async function getSrc(src){
+  try{
+    const ctl = new AbortController(); const to = setTimeout(()=>ctl.abort(), 10000);
+    const res = await fetch(src.url, {signal: ctl.signal, cache:'no-store'}); clearTimeout(to);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const m = src.f(await res.json());
+    return Object.keys(m).length ? m : null;
+  }catch(e){ return null; }
+}
+async function fetchLive(){
+  if(liveBusy) return; liveBusy = true;
+  $('refresh').disabled = true; $('liveMsg').textContent = 'Loading live waits and show times…';
+  const [qt, tw] = await Promise.all(SOURCES.map(getSrc));
+  const waits = qt || tw;
+  if(waits){ state.live = waits; state.liveAt = Date.now(); state.liveSrc = qt ? SOURCES[0].name : SOURCES[1].name; state.liveErr = ''; }
+  else state.liveErr = 'Could not load live waits (offline or blocked). Showing estimates.';
+  if(tw){ state.sched = tw; state.schedAt = Date.now(); state.schedErr = ''; }
+  else state.schedErr = 'Could not load show times. Check the Disneyland app.';
+  liveBusy = false; $('refresh').disabled = false;
+  renderLiveMsg(); refreshWaitViews(); fillShowSelect();
+}
+function liveCount(){ let n=0; RIDES.slice(0,BASE).forEach((r,i)=>{ if(liveFor(i)) n++; }); return n; }
+function schedMsg(){
+  if(state.schedErr && !state.schedAt) return ' ' + state.schedErr;
+  if(!state.schedAt) return '';
+  const n = Object.values(state.sched).filter(x=>x.times.length).length;
+  return ' Show times for ' + parkToday() + ': ' + n + ' entertainment listings have showings' + (state.schedErr ? ' (last refresh failed).' : '.');
+}
+function renderLiveMsg(){
+  const el = $('liveMsg');
+  if(!state.liveOn){ el.innerHTML = '<span class="dot off"></span>Live waits are off. Showing estimates and your edits.' + schedMsg(); return; }
+  if(state.liveAt){
+    const parks = '' ;
+    el.innerHTML = '<span class="dot"></span>Live from ' + state.liveSrc + ', fetched ' + new Date(state.liveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + '. ' + liveCount() + ' of ' + BASE + ' listings have a fresh live wait; the rest show ESTIMATE.' + (state.liveErr ? ' Last refresh failed.' : '') + schedMsg();
+  } else el.textContent = (state.liveErr || 'Live waits not loaded yet.') + schedMsg();
+}
+function refreshWaitViews(){ renderPlan(); document.querySelectorAll('.card').forEach(c => { const i = +c.dataset.i; const b = c.querySelector('.wchip'); if(b) b.innerHTML = waitChip(i); }); }
+function waitChip(i){
+  const T = showTimes(i);
+  if(T) return '<span class="wlabel">Today: ' + T.map(x=>short(x.min)).join(', ') + '</span> ' + SCHED_BADGE;
+  const S = schedFor(i);
+  if(S && kindOf(RIDES[i])==='meet' && S.wins.length) return '<span class="wlabel">Hours today: ' + short(S.wins[0].a.min) + ' to ' + short(S.wins[0].b.min) + (S.open ? '' : ' (closed now)') + '</span> ' + SCHED_BADGE;
+  if(kindOf(RIDES[i])==='show' && state.schedAt) return '<span class="wlabel">No showtimes posted today</span> <span class="src est">NOT POSTED</span>';
+  if(i >= BASE || kindOf(RIDES[i])==='walk' && !RIDES[i][8]) return '';
+  const inf = waitInfo(i);
+  const pk = histPeak(i);
+  const typ = pk ? '<br><span class="wlabel">Typical: ' + pk.lo + ' to ' + pk.v + ' min, busiest around ' + short(pk.hour*60) + '</span> <span class="src typ">TYPICAL</span>' : '';
+  const txt = inf.src==='shut' ? 'Closed now' : inf.v + ' min';
+  return '<span class="wlabel">Wait ' + txt + '</span> ' + srcBadge(inf) + typ;
+}
+$('refresh').onclick = fetchLive;
+$('useLive').onchange = () => { state.liveOn = $('useLive').checked; renderLiveMsg(); refreshWaitViews(); if(state.liveOn && !state.liveAt) fetchLive(); };
+let refTimer = null;
+function setAuto(){ clearInterval(refTimer); refTimer = null; if($('autoRef').checked) refTimer = setInterval(() => { if(!document.hidden && state.liveOn) fetchLive(); }, 5*60*1000); }
+$('autoRef').onchange = setAuto;
+document.addEventListener('visibilitychange', () => { if(!document.hidden && state.liveOn && (!state.liveAt || Date.now()-state.liveAt > 5*60*1000)) fetchLive(); });
+function fmt(m){ m=Math.round(m); let h=Math.floor(m/60)%24, mm=m%60; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+String(mm).padStart(2,'0')+' '+ap; }
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+const walkMin = (a,b) => Math.max(1, Math.round(dist(a,b)/22));
+
+function autoOrder(){
+  if(!state.sel.length) return;
+  const left = state.sel.slice();
+  const peakW = i => { const k = histPeak(i); return k ? k.v : waitOf(i); };
+  const first = left.reduce((a,b)=> peakW(b)>peakW(a)?b:a);
+  const out=[first]; left.splice(left.indexOf(first),1);
+  while(left.length){
+    const cur = pos(out[out.length-1]);
+    let best=0, bd=1e9;
+    left.forEach((i,k)=>{ const d=dist(cur,pos(i)); if(d<bd){bd=d;best=k;} });
+    out.push(left.splice(best,1)[0]);
+  }
+  state.sel = out; save(); renderPlan();
+}
+$('auto').onclick = autoOrder;
+$('addTop').onclick = () => {
+  let n = 0;
+  RIDES.forEach((r,i) => { if(scoreOf(i) >= 4 && !state.sel.includes(i)){ state.sel.push(i); n++; } });
+  $('codeMsg').textContent = n ? ('Added ' + n + ' ride' + (n>1?'s':'') + '. Tap Auto-order route to sort them by walking distance.') : 'No new 4+ star rides to add. Rate rides on the Rides tab first.';
+  updateTab(); save(); renderPlan();
+};
+$('clear').onclick = () => { state.sel=[]; updateTab(); save(); renderPlan(); };
+$('start').addEventListener('input', () => { save(); renderPlan(); });
+$('lunch').addEventListener('change', () => { save(); renderPlan(); });
+
+function startMin(){ const [h,m] = ($('start').value||'08:00').split(':').map(Number); return h*60+m; }
+
+function buildTimeline(){
+  let t = startMin(), here = ENTRANCE, lunchDone = !$('lunch').checked;
+  const items = [];
+  state.sel.forEach(i => {
+    if(!lunchDone && t >= 11*60+30){ items.push({lunch:true, at:t}); t += 45; lunchDone = true; }
+    const p = pos(i), w = walkMin(here,p), arrive = t + w, dur = RIDES[i][9];
+    const sh = pickTime(i, arrive);
+    const winfo = sh ? null : waitInfo(i, arrive);
+    const wait = sh ? (sh.start != null && !sh.late ? sh.start - arrive : 0) : winfo.v;
+    items.push({i, walk:w, arrive, wait, winfo, dur, show:sh, off: arrive+wait+dur});
+    t = arrive + wait + dur; here = p;
+  });
+  return {items, end:t};
+}
+
+function renderPlan(){ renderMap(); renderTimeline(); }
+
+function renderTimeline(){
+  const box = $('timeline'); box.innerHTML = '';
+  if(!state.sel.length){ box.innerHTML = '<div class="empty">No rides yet. Go to Rides and tap "+ Add to plan".</div>'; return; }
+  const {items,end} = buildTimeline();
+  const head = document.createElement('h2'); head.textContent = 'Timeline'; box.appendChild(head);
+  let n = 0, multi = 0, single = 0;
+  items.forEach(it => {
+    const row = document.createElement('div'); row.className='stop';
+    if(it.lunch){
+      row.style.setProperty('--kc','var(--k-food)');
+      row.innerHTML = '<div class="num">🍴</div><div><div class="when"></div><div class="badges"><span class="kt">Food</span></div><div class="sub">Lunch break, 45 min</div></div><div></div>';
+      row.querySelector('.when').textContent = fmt(it.at);
+    } else {
+      n++;
+      const r = RIDES[it.i], kind = kindOf(r), lane = laneOf(r), custom = it.i >= BASE;
+      if(lane==='multi') multi++; if(lane==='single') single++;
+      row.style.setProperty('--kc','var(--k-'+kind+')');
+      row.innerHTML = '<div class="num"></div><div><div class="when"></div><div class="nm" style="font-weight:600"></div><div class="badges"></div><div class="st"></div><div class="sub"></div>'+
+        '<div class="sub adj" style="margin-top:6px"></div>'+
+        '<div class="jump">Move to # <input class="to" type="number" min="1" inputmode="numeric" aria-label="New position"> <button type="button" class="go">Move</button> <button type="button" class="top">⤒ Front</button> <button type="button" class="end">⤓ End</button></div></div>'+
+        '<div class="mv"><button type="button" class="up" aria-label="Move up">▲</button><button type="button" class="dn" aria-label="Move down">▼</button><button type="button" class="rm" aria-label="Remove">✕</button></div>';
+      row.querySelector('.num').textContent = n;
+      row.querySelector('.when').textContent = 'Arrive ' + fmt(it.arrive);
+      row.querySelector('.nm').textContent = r[0];
+      row.querySelector('.badges').innerHTML = '<span class="kt">' + KIND_LABEL[kind] + '</span>' + durChip(it.i) +
+        (lane==='multi' ? '<span class="lane" title="Lightning Lane Multi Pass eligible">⚡ Multi Pass</span>' : (lane==='single' ? '<span class="lane single" title="Lightning Lane Single Pass only">⚡ Single Pass only</span>' : ''));
+      row.querySelector('.st').textContent = starsText(scoreOf(it.i));
+      row.querySelector('.sub').textContent = r[1] + ' · walk ~' + it.walk + ' min · ' + (it.wait ? (it.show ? 'hold ' : 'wait ') + it.wait + ' min · ' : '') + DUR_WORD[kind].toLowerCase() + ' ~' + it.dur + ' min · done ~' + fmt(it.off) + ((kind==='show'&&!it.show)||kind==='meet' ? ' · check the app for show times' : '');
+      const adj = row.querySelector('.adj');
+      if(it.show){
+        const T = showTimes(it.i);
+        adj.innerHTML = 'Showtime <select class="fld sh"></select> ' + SCHED_BADGE + '<div class="shn" style="margin-top:4px"></div>';
+        const sel = adj.querySelector('.sh');
+        const o0 = document.createElement('option'); o0.value=''; o0.textContent = 'Next showing' + (it.show.auto && it.show.start!=null ? ' (' + fmt(it.show.start) + ')' : ''); sel.appendChild(o0);
+        T.forEach(x => { const o=document.createElement('option'); o.value=x.hhmm; o.textContent=fmt(x.min); sel.appendChild(o); });
+        sel.value = state.showPick[r[0]] || '';
+        sel.addEventListener('change', () => { if(sel.value) state.showPick[r[0]] = sel.value; else delete state.showPick[r[0]]; save(); renderPlan(); });
+        const shn = adj.querySelector('.shn');
+        shn.textContent = it.show.none ? 'No more showings after you arrive today. Remove this stop or pick another day.'
+          : it.show.late ? 'You would arrive after the ' + fmt(it.show.start) + ' showing starts. Pick a later one.'
+          : 'Show starts ' + fmt(it.show.start) + '. Holding ' + it.wait + ' min after you arrive; seats fill early, so arrive 15 min before.';
+        const lw = adj; if(custom){ const li = document.createElement('div'); li.style.marginTop='4px'; li.innerHTML = 'Length <input class="len" type="number" min="1" max="240" inputmode="numeric"> min'; adj.appendChild(li); const ii = li.querySelector('.len'); ii.value = r[9]; ii.addEventListener('change', () => { const v=parseInt(ii.value,10); r[9] = isNaN(v)?20:Math.max(1,Math.min(240,v)); save(); renderPlan(); }); }
+      } else if(custom){
+        adj.innerHTML = 'Length <input class="len" type="number" min="1" max="240" inputmode="numeric"> min';
+        const li = adj.querySelector('.len'); li.value = r[9];
+        li.addEventListener('change', () => { const v=parseInt(li.value,10); r[9] = isNaN(v)?30:Math.max(1,Math.min(240,v)); save(); renderPlan(); });
+      } else {
+        const inf = it.winfo || waitInfo(it.i);
+        adj.innerHTML = 'Wait <input class="wait" type="number" min="0" max="180" inputmode="numeric"> min ' + srcBadge(inf) + (inf.src==='you' ? ' <button type="button" class="btn rs" style="padding:2px 8px;font-size:12px">Use live/estimate</button>' : '');
+        const rsb = adj.querySelector('.rs'); if(rsb) rsb.onclick = () => { delete state.waits[r[0]]; save(); renderPlan(); };
+        const wi = adj.querySelector('.wait'); wi.value = it.wait;
+        wi.addEventListener('change', () => { const v=parseInt(wi.value,10); state.waits[r[0]] = isNaN(v)?0:Math.max(0,v); save(); renderPlan(); });
+      }
+      const k = state.sel.indexOf(it.i);
+      row.querySelector('.up').onclick = () => { if(k>0){ [state.sel[k-1],state.sel[k]]=[state.sel[k],state.sel[k-1]]; save(); renderPlan(); } };
+      row.querySelector('.dn').onclick = () => { if(k<state.sel.length-1){ [state.sel[k+1],state.sel[k]]=[state.sel[k],state.sel[k+1]]; save(); renderPlan(); } };
+      const moveTo = pos1 => { const to = Math.max(0, Math.min(state.sel.length-1, pos1)); if(to === k) return; const [x] = state.sel.splice(k,1); state.sel.splice(to,0,x); save(); renderPlan(); };
+      const toIn = row.querySelector('.to'); toIn.max = state.sel.length; toIn.placeholder = String(k+1);
+      const goNow = () => { const v = parseInt(toIn.value,10); if(!isNaN(v)) moveTo(v-1); };
+      row.querySelector('.go').onclick = goNow;
+      toIn.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); goNow(); } });
+      row.querySelector('.top').onclick = () => moveTo(0);
+      row.querySelector('.end').onclick = () => moveTo(state.sel.length-1);
+      row.querySelector('.rm').onclick = () => { state.sel.splice(k,1); updateTab(); save(); renderPlan(); };
+    }
+    box.appendChild(row);
+  });
+  const kinds = {live:0, typ:0, est:0, you:0, shut:0}; items.forEach(it => { if(it.lunch || it.show || !it.winfo) return; const k = it.winfo.src; if(k in kinds) kinds[k]++; });
+  const wn = document.createElement('div'); wn.className='sub'; wn.id='waitNote'; wn.style.paddingTop='8px';
+  wn.textContent = 'Waits in this plan: ' + kinds.live + ' live, ' + kinds.typ + ' typical for the hour, ' + kinds.est + ' estimate' + (kinds.you ? ', ' + kinds.you + ' edited by you' : '') + (kinds.shut ? ', ' + kinds.shut + ' closed now (using estimate)' : '') + '. Live waits are for right now, so they only mean something on the day you visit.';
+  box.appendChild(wn);
+  const fin = document.createElement('div'); fin.className='sub'; fin.style.paddingTop='10px';
+  let tw=0, tq=0, td=0; items.forEach(it => { if(it.lunch){ td += 0; return; } tw += it.walk; tq += it.wait; td += it.dur; });
+  const tot = document.createElement('div'); tot.className='sub'; tot.id='durTotal'; tot.style.paddingTop='8px';
+  tot.textContent = 'Time in this plan: about ' + td + ' min on rides, shows and stops, ' + tq + ' min waiting or holding, ' + tw + ' min walking' + ($('lunch').checked ? ', plus 45 min lunch' : '') + '.';
+  box.appendChild(tot);
+  fin.textContent = 'Finished around ' + fmt(end) + ' (about ' + (Math.round((end - startMin())/6)/10) + ' hours).';
+  box.appendChild(fin);
+  if(multi || single){
+    const ln = document.createElement('div'); ln.className='sub'; ln.id='laneNote'; ln.style.paddingTop='6px';
+    ln.textContent = '⚡ ' + multi + ' of your stops ' + (multi===1?'is':'are') + ' on the Lightning Lane Multi Pass list' + (single ? ' and ' + single + ' is Single Pass only' : '') + ' (list checked Nov 26, 2026). Check the app, because the list changes.';
+    box.appendChild(ln);
+  }
+}
+
+function renderMap(){
+  let s = '<svg viewBox="0 0 600 540" role="img" aria-label="Simplified Disney California Adventure map with your route">';
+  s += '<g stroke="currentColor" stroke-opacity=".25" stroke-width="10" stroke-linecap="round" fill="none">';
+  s += '<path d="M300 505V350"/>';
+  Object.keys(LANDS).forEach(k => { if(k==="Buena Vista Street") return; const L=LANDS[k]; s += '<path d="M'+HUB.x+' '+HUB.y+'L'+L.x+' '+L.y+'"/>'; });
+  s += '</g>';
+  Object.keys(LANDS).forEach(k => {
+    const L = LANDS[k];
+    s += '<ellipse cx="'+L.x+'" cy="'+L.y+'" rx="62" ry="36" fill="'+L.c+'" fill-opacity=".22" stroke="'+L.c+'" stroke-width="2"/>';
+    s += '<text x="'+L.x+'" y="'+(L.y+54)+'" text-anchor="middle" font-size="12" fill="currentColor" fill-opacity=".8">'+k.replace('&','&amp;')+'</text>';
+  });
+  s += '<circle cx="'+HUB.x+'" cy="'+HUB.y+'" r="12" fill="currentColor" fill-opacity=".35"/><text x="'+HUB.x+'" y="'+(HUB.y-18)+'" text-anchor="middle" font-size="11" fill="currentColor" fill-opacity=".8">Park hub</text>';
+  s += '<rect x="'+(ENTRANCE.x-34)+'" y="'+(ENTRANCE.y-10)+'" width="68" height="22" rx="6" fill="currentColor" fill-opacity=".8"/><text x="'+ENTRANCE.x+'" y="'+(ENTRANCE.y+5)+'" text-anchor="middle" font-size="12" fill="#fff">Entrance</text>';
+  if(state.sel.length){
+    let pts = ENTRANCE.x+','+ENTRANCE.y;
+    state.sel.forEach(i => { const p=pos(i); pts += ' '+p.x+','+p.y; });
+    s += '<polyline points="'+pts+'" fill="none" stroke="#e8542f" stroke-width="3" stroke-dasharray="7 6" stroke-linejoin="round"/>';
+    const {items} = buildTimeline();
+    let n=0;
+    items.forEach(it => { if(it.lunch) return; n++; const p=pos(it.i);
+      const rr = RIDES[it.i], kd = kindOf(rr), ln = laneOf(rr);
+      s += '<g>' + (ln ? '<circle class="ring" cx="'+p.x+'" cy="'+p.y+'" r="17" fill="none" style="stroke:var(--lane)" stroke-width="3"'+(ln==='single'?' stroke-dasharray="4 3"':'')+'/>' : '') +
+        '<circle cx="'+p.x+'" cy="'+p.y+'" r="12" style="fill:var(--k-'+kd+')" stroke="#fff" stroke-width="2"/><text x="'+p.x+'" y="'+(p.y+4.5)+'" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--kink)">'+n+'</text>' +
+        (ln ? '<text x="'+(p.x+13)+'" y="'+(p.y-8)+'" font-size="12">⚡</text>' : '') + '</g>';
+      s += '<text x="'+p.x+'" y="'+(p.y-22)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" stroke="var(--map)" stroke-width="3" paint-order="stroke">'+fmt(it.arrive).replace(' AM','a').replace(' PM','p')+'</text>';
+    });
+  }
+  s += '</svg>';
+  $('map').innerHTML = s;
+  $('map').style.color = getComputedStyle(document.body).color;
+}
+
+// ---------- save / load by code (works across devices) ----------
+function makeCode(){
+  const o = {c:customDefs(), h:state.showPick, s:state.sel.map(i=>RIDES[i][0]), w:state.waits, r:state.scores, t:$('start').value, l:$('lunch').checked};
+  return 'DC1.' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+}
+function loadCode(code){
+  try{
+    code = code.trim();
+    if(!(code.startsWith('DC1.'))) throw 0;
+    const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(4)))));
+    (o.c||[]).forEach(c => ensureCustom(c[0],c[1],c[2],c[3]));
+    state.sel = (o.s||[]).map(n=>idxByName[n]).filter(i=>i!==undefined);
+    state.waits = o.w||{}; state.showPick = o.h||{};
+    if(o.r) state.scores = o.r;
+    if(o.t) $('start').value = o.t;
+    $('lunch').checked = o.l !== false;
+    updateTab(); save(); renderPlan();
+    return true;
+  }catch(e){ return false; }
+}
+$('copyCode').onclick = async () => {
+  const c = makeCode();
+  try{ await navigator.clipboard.writeText(c); $('codeMsg').textContent = 'Copied. Save it in Notes or text it to yourself. It includes your star scores.'; }
+  catch(e){ $('codeIn').value = c; $('codeIn').select(); $('codeMsg').textContent = 'Copy this code from the box (press and hold, then Copy).'; }
+};
+$('loadCode').onclick = () => {
+  $('codeMsg').textContent = loadCode($('codeIn').value) ? 'Plan loaded.' : 'That code did not work. Check that you pasted all of it.';
+};
+
+// Full link: this page's address plus #plan=<code>. Opening it loads that plan.
+function planLink(){ return location.href.split('#')[0] + '#plan=' + encodeURIComponent(makeCode()); }
+$('copyLink').onclick = async () => {
+  const link = planLink();
+  if(!/^https?:/.test(link)){ $('codeIn').value = makeCode(); $('codeMsg').textContent = 'A full link is not available in this view. Use Copy plan code instead.'; return; }
+  try{ await navigator.clipboard.writeText(link); $('codeMsg').textContent = 'Copied a link. Anyone who opens it gets this plan and your star scores.'; }
+  catch(e){ $('codeIn').value = link; $('codeIn').select(); $('codeMsg').textContent = 'Copy the link from the box (press and hold, then Copy).'; }
+};
+// shows and parades from the feed that are not already listed
+const LAND_GUESS = [[/world of color|paradise|mermaid/i,'Paradise Gardens Park'],[/pixar|toy story|incredi|inside out|playtime/i,'Pixar Pier'],[/avengers|spider|guardians|wakanda|marvel/i,'Avengers Campus'],[/cars|radiator|luigi|mater/i,'Cars Land'],[/hollywood|disney jr|animation|monsters|philharmagic/i,'Hollywood Land'],[/grizzly|redwood|soarin/i,'Grizzly Peak'],[/.*/,'Buena Vista Street']];
+function fillShowSelect(){
+  const sel = $('schSel'); if(!sel) return; sel.innerHTML = '';
+  const have = new Set(RIDES.slice(0,BASE).map(r=>norm(r[0])));
+  const list = Object.entries(state.sched).filter(([k,v]) => v.times.length && !have.has(k)).sort((a,b)=>a[1].times[0].min-b[1].times[0].min);
+  list.forEach(([k,v]) => { const o=document.createElement('option'); o.value=v.name; o.textContent = v.name + ' (' + v.times.map(x=>short(x.min)).join(', ') + ')'; sel.appendChild(o); });
+  $('schAdd').disabled = !list.length;
+  $('schNote').textContent = list.length ? 'Times are for ' + parkToday() + ' (park time). Check the Disneyland app, since schedules change.' : (state.schedAt ? 'No other entertainment with showtimes posted for today.' : 'Show times have not loaded yet.');
+}
+$('schAdd').onclick = () => {
+  const nm = $('schSel').value; if(!nm) return;
+  const land = LAND_GUESS.find(x=>x[0].test(nm))[1];
+  const i = ensureCustom(nm, 'show', land, 20);
+  if(i === undefined) return;
+  if(!state.sel.includes(i)) state.sel.push(i);
+  $('codeMsg').textContent = 'Added. Pick a showtime and use ▲ ▼ to place it. The land on the map is a guess.';
+  updateTab(); save(); renderPlan();
+};
+// add a food, rest or custom stop
+Object.keys(LANDS).forEach(k => { const o=document.createElement('option'); o.value=k; o.textContent=k; $('csLand').appendChild(o); });
+$('csAdd').onclick = () => {
+  const i = ensureCustom($('csName').value, $('csKind').value, $('csLand').value, $('csMin').value);
+  if(i === undefined){ $('codeMsg').textContent = 'Type a name for the stop first.'; return; }
+  if(!state.sel.includes(i)) state.sel.push(i);
+  $('csName').value = '';
+  $('codeMsg').textContent = 'Added. Use ▲ ▼ to place it in your day.';
+  updateTab(); save(); renderPlan();
+};
+// Older links and codes keep working: DL1 and DL2 codes, old ride names, and old saved browser data.
+function applyHash(){
+  try{
+    if(!location.hash.startsWith('#plan=')) return;
+    const ok = loadCode(decodeURIComponent(location.hash.slice(6)));
+    // drop the code from the address bar so a reload does not overwrite later edits
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+    if(ok){ showTab('plan'); $('codeMsg').textContent = 'Plan loaded from the link.'; }
+  }catch(e){}
+}
+window.addEventListener('hashchange', applyHash);
+
+restore();
+setAuto(); fetchLive();
+updateTab(); applyFilters();
+applyHash();
+</script>
+</body>
+</html>

@@ -60,6 +60,9 @@
   .num.lunch{background:var(--mute)}
   .when{font-weight:700}
   .sub{font-size:13px;color:var(--mute)}
+  .parks{display:flex;gap:6px;margin:4px 0 8px}
+  .parks a{font-size:13px;font-weight:600;padding:3px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none}
+  .parks a[aria-current]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .searchbox{position:relative;margin:0 0 8px}
   .searchbox input{width:100%;box-sizing:border-box;padding:10px 38px 10px 12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
   .searchbox button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--mute);font-size:20px;line-height:1;padding:6px 10px;cursor:pointer}
@@ -99,6 +102,7 @@
 <body>
 <header>
   <h1>Disneyland Park planner</h1>
+  <nav class="parks" aria-label="Choose park"><a href="index.html" aria-current="page">Disneyland Park</a><a href="dca.html">California Adventure</a></nav>
   <div class="tabs" role="tablist">
     <button class="tab" id="tabRides" role="tab" aria-selected="true">Rides</button>
     <button class="tab" id="tabPlan" role="tab" aria-selected="false">My plan (0)</button>
@@ -485,7 +489,8 @@ function pos(i){
 // ESTIMATE = the typical wait written into this page (a rough guess, not a forecast for your date).
 // LIVE = the posted wait fetched from the web, newer than 30 minutes.
 const LIVE_MAX_AGE = 30*60*1000;
-const norm = n => String(n||'').toLowerCase().replace(/[\u2122\u00ae]/g,'').replace(/&/g,' and ').replace(/\bholiday\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const SYN = [];   // park-specific renames between listings and live feeds
+const norm = n => { let x = String(n||'').toLowerCase().replace(/[\u2122\u00ae]/g,'').replace(/&/g,' and ').replace(/\bholiday\b/g,'').replace(/[^a-z0-9]+/g,' ').trim(); SYN.forEach(([a,b]) => { x = x.split(a).join(b); }); return x; };
 state.live = {};            // normalized name -> {wait, open, at}
 state.liveOn = true; state.liveAt = null; state.liveErr = ''; state.sched = {}; state.schedAt = null; state.schedErr = '';
 function liveFor(i){
@@ -530,7 +535,8 @@ const DUR_WORD = {ride:'Ride time', show:'Show length', walk:'Visit time', play:
 const durChip = i => '<span class="dur" title="' + DUR_WORD[kindOf(RIDES[i])] + ' (approximate, not including the wait)">⏱ ' + RIDES[i][9] + ' min</span>';
 function schedFor(i){
   const r = RIDES[i];
-  return state.sched[norm(r[0])] || state.sched[norm(Object.keys(ALIASES).find(k=>ALIASES[k]===r[0])||'')] || null;
+  const c = [r[0]].concat(Object.keys(ALIASES).filter(k=>ALIASES[k]===r[0])).map(n => state.sched[norm(n)]).filter(Boolean);
+  return c.find(x => x.times.length || x.wins.length) || c[0] || null;
 }
 const showTimes = i => { const S = schedFor(i); return kindOf(RIDES[i])==='show' && S && S.times.length ? S.times : null; };
 const short = m => fmt(m).replace(':00 ',' ').replace(' AM','a').replace(' PM','p');

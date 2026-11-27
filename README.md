@@ -66,3 +66,9 @@ Each stop in the plan has "Move to #" (type a position and press Move or Enter),
 ## Search
 
 The Rides tab has a search box above the filters. It matches ride name, land, age group, type, the notes and the Pixar and Multi Pass tags. Several words must all match, and case and punctuation are ignored. It combines with the filter chips, and × or Esc clears it.
+
+## Disney California Adventure page
+
+`dca.html` is the same planner for Disney California Adventure, with a park switcher at the top of both pages. It has its own saved plan, and its plan codes start with `DC1.` so a Disneyland code cannot be loaded into it by mistake. Waits come from Queue-Times park 17, show times from the ThemeParks.wiki feed for Disney California Adventure. Typical waits cover 15 rides (2025 statistics, with late-evening values capped at the 9 PM average). Soarin' Across America opened in July 2026, so it has no history yet.
+
+`dca.html` is generated. After changing `index.html`, run `python3 tools/make_dca.py` to rebuild it. The park data lives in `tools/make_dca.py`. There are no ride videos on this page yet, only a YouTube search link.
